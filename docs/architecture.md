@@ -122,6 +122,16 @@ Rules:
 - `sosya up` starts a range that contains a dangerous environment only with `--allow-privileged`
   and an explicit interactive confirmation, which lists each flagged service and the reason it was
   flagged. Without the flag it refuses to start.
+- When a plan contains a dangerous environment, the plan preview flags it prominently, with a
+  clear warning mark and the reasons, next to the affected host. It is never hidden in the
+  details.
+- `sosya new` follows the same rule as `sosya up`: it builds a plan that contains a dangerous
+  environment only with `--allow-privileged` and an explicit interactive confirmation. Without
+  the flag it shows the plan with the warning and stops before building.
+- The MCP server always rejects dangerous environments, even when the agent asks for them by
+  name or passes a `range.yaml` it wrote itself. The rejection explains that these environments
+  can only be started from the CLI, with `--allow-privileged` and a person confirming. No MCP
+  argument overrides this.
 
 ## Image architectures
 
@@ -172,7 +182,8 @@ anything is pulled, when the host's architecture is not among an image's platfor
   tests should assert that the rendered output contains no `ports` outside the `127.0.0.1`
   networks.
 - `runtime/`: check the Docker Engine version (at least 28.0.0) before `up`, and enforce
-  `--allow-privileged` with a confirmation for dangerous environments.
+  `--allow-privileged` with a confirmation for dangerous environments (in both `up` and `new`).
+- `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment.
 - `catalog/`: store the dangerous flag (with its reasons) and the image platforms in the index.
 - `validate/`: reuse the spike's checks as post-`up` probes: attacker → each declared service by
   name, and that no target has a default route.
