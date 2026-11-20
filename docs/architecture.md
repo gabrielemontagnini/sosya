@@ -11,23 +11,28 @@ Decided on 2026-11-20 from a spike run on Docker Engine 29.10.0 and Docker Compo
 ### Rules for the renderer
 
 1. **One Docker network per scenario segment** (`dmz`, `internal`, ...). Each one is a bridge
-   with `internal: true` and the driver option
+   with `internal: true`, `enable_ipv6: false` and the driver option
    `com.docker.network.bridge.gateway_mode_ipv4: isolated`.
 2. **No `ports:` on target services.** The renderer strips every `ports` entry it copies from Vulhub.
 3. **The attacker box is the only container with internet access.** When `attacker.internet` is
    true, it also joins a separate network named `egress`, a plain bridge that is not internal.
    No target ever joins `egress`.
-4. **The attacker box does not forward packets.** The renderer always sets
-   `sysctls: {net.ipv4.ip_forward: "0"}` on it. Without that setting, the container's
-   `ip_forward` was measured at `1`. A compromised target with root could then add a route
-   through the attacker box and reach the internet over `egress`.
+4. **The attacker box does not forward packets (defense in depth).** The renderer always sets
+   `sysctls: {net.ipv4.ip_forward: "0"}` on it. Without it, the spike measured `ip_forward` at
+   `1` inside the attacker box. This is not an exploitable path in the default setup: to route
+   through the attacker box, a target would need to change its own routing table, which requires
+   `CAP_NET_ADMIN`, and Docker does not grant that capability by default. The sysctl is an extra
+   layer, so that egress stays closed even if a target is ever started with more capabilities.
 5. **Pivoting comes from dual-homed hosts only.** A host on two segments, such as `web` on
    `dmz` and `internal`, is the only path between them. The attacker box joins only the
    segments listed in `attacker.networks`.
 6. **`--expose` and `--proxy` publish on `127.0.0.1` only**, through a separate network that is
    not internal (the same pattern as `egress`). An address that is empty or `0.0.0.0` is a bug.
-7. Networks are IPv4 only (`enable_ipv6` stays off). If IPv6 is ever enabled, set
-   `gateway_mode_ipv6: isolated` too.
+7. **Networks are IPv4 only.** Segment networks set `enable_ipv6: false` explicitly, instead
+   of relying on the daemon default. If IPv6 is ever enabled, set `gateway_mode_ipv6: isolated`
+   too.
+8. **Dangerous services need explicit consent.** See
+   [Services with host-level privileges](#services-with-host-level-privileges).
 
 Example of a rendered segment network:
 
@@ -35,18 +40,31 @@ Example of a rendered segment network:
 networks:
   dmz:
     internal: true
+    enable_ipv6: false
     driver_opts:
       com.docker.network.bridge.gateway_mode_ipv4: isolated
 ```
 
 ### Minimum Docker version: Engine 28.0.0
 
-The `isolated` gateway mode arrived in Docker Engine 28.0.0 (moby/moby#49262) and is valid only
-on internal networks. Older engines are reported to reject it with `unknown gateway mode`, so the
-failure is visible rather than silent. However, Sosya must not depend on that, so:
+The `isolated` gateway mode arrived in Docker Engine 28.0.0 (released 2025-02-19). The
+[official Docker Engine 28 release notes](https://docs.docker.com/engine/release-notes/28/),
+section 28.0.0, "Networking", "Port publishing in bridge networks", say:
+
+> Bridge driver options `com.docker.network.bridge.gateway_mode_ipv4` and
+> `com.docker.network.bridge.gateway_mode_ipv6` now accept mode `isolated`, when the network is
+> also `internal`.
+>
+> An `internal` bridge network created with gateway mode `isolated` does not have an address on
+> the Docker host.
+
+The change is [moby/moby#49262](https://github.com/moby/moby/pull/49262). The mode is valid only
+on internal networks.
+
+Sosya does not rely on how older engines react to the option:
 
 - `sosya doctor` fails (not just warns) when the Docker Engine is older than 28.0.0.
-- `sosya up` runs the same version check before rendering.
+- `sosya up` runs the same version check before rendering and refuses to start.
 
 ### Why `internal: true` alone is not enough
 
@@ -82,6 +100,29 @@ twice, once by DNS name and once by container IP.
 | 4 | Attacker: `apk add`, DNS, HTTPS, TCP to `1.1.1.1:443` | ok |
 | 5 | `ports: ["127.0.0.1:18080:80"]` on a separate network that is not internal | answers on `127.0.0.1`, refused on the host's LAN IP |
 
+## Services with host-level privileges
+
+The catalog builder marks an environment as **dangerous** when any of its services uses one of:
+
+- `privileged: true`
+- `cap_add`
+- `network_mode: host`, `pid: host` or `ipc: host`
+- a mount of `docker.sock`
+- `devices`
+
+At the pinned Vulhub commit, 2 of the 334 environments are marked, both for `privileged: true`:
+
+- `ingress-nginx/CVE-2025-1974`
+- `docker/unauthorized-rce`
+
+Rules:
+
+- The planner never picks a dangerous environment by itself: these environments are left out of
+  its candidate list unless the user's prompt names them.
+- `sosya up` starts a range that contains a dangerous environment only with `--allow-privileged`
+  and an explicit interactive confirmation, which lists each flagged service and the reason it was
+  flagged. Without the flag it refuses to start.
+
 ## Image architectures
 
 Checked on 2026-11-20 with `docker buildx imagetools inspect` and cross-checked with
@@ -114,13 +155,24 @@ Consequences:
 - `openssh/CVE-2018-15473` uses `build:`, so it is not in the image-only set. Its base image is
   amd64 only as well.
 
+### Platforms in the catalog index
+
+The catalog index stores the platforms of every image it references, for example
+`"platforms": ["linux/amd64"]`. The builder reads them with the method used above: the manifest
+list's `platform` entries, ignoring `unknown/unknown` attestation entries, or the image config's
+`os`/`architecture` fields for a single manifest. For a `build:` service, it reads the platforms of
+the `FROM` image. With this data, `sosya doctor` and the planner can warn for each range, before
+anything is pulled, when the host's architecture is not among an image's platforms.
+
 ## Implications for `render/` and `runtime/`
 
-- `render/`: apply rules 1-7 above. Every segment network gets `internal: true` and the
-  `isolated` gateway option. `egress` exists only when `attacker.internet` is true. The attacker
+- `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
+  `enable_ipv6: false` and the `isolated` gateway option. `egress` exists only when `attacker.internet` is true. The attacker
   box gets the `ip_forward` sysctl. `platform: linux/amd64` goes on Vulhub services. Snapshot
   tests should assert that the rendered output contains no `ports` outside the `127.0.0.1`
   networks.
-- `runtime/`: check the Docker Engine version (at least 28.0.0) before `up`.
+- `runtime/`: check the Docker Engine version (at least 28.0.0) before `up`, and enforce
+  `--allow-privileged` with a confirmation for dangerous environments.
+- `catalog/`: store the dangerous flag (with its reasons) and the image platforms in the index.
 - `validate/`: reuse the spike's checks as post-`up` probes: attacker → each declared service by
   name, and that no target has a default route.
