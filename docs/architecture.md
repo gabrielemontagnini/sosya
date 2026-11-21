@@ -105,10 +105,36 @@ twice, once by DNS name and once by container IP.
 The catalog builder marks an environment as **dangerous** when any of its services uses one of:
 
 - `privileged: true`
-- `cap_add`
-- `network_mode: host`, `pid: host` or `ipc: host`
-- a mount of `docker.sock`
-- `devices`
+- `cap_add`, `devices` or `security_opt`
+- `network_mode`, unless it is `service:<name>` towards a service of the same component
+- `pid: host`, `ipc: host` or `userns_mode: host`
+- a bind mount whose source is absolute (including `docker.sock`) or leaves the component
+  directory
+
+The builder and the renderer share these rules (`sosya.catalog.rules`), so a key can never look
+harmless to one and pass the other.
+
+### Allowlist of compose keys
+
+The renderer copies a Vulhub service key by key and accepts only keys listed in
+`sosya.catalog.rules`. Everything else makes both the catalog build and the renderer fail with
+the environment id, so a new Vulhub pin cannot bring in an unreviewed key. The list comes from an
+inventory of the 334 compose files at the pinned commit (2026-11-21):
+
+- Copied: `image`, `build`, `command`, `entrypoint`, `environment`, `env_file`, `depends_on`
+  (renamed), `healthcheck`, `user`, `restart` (`always` and `unless-stopped` become
+  `on-failure`, so a target never comes back by itself after a daemon restart), `hostname`,
+  `working_dir`, `init`, `tty`, `shm_size`, `ulimits`, `labels` (`sosya.*` and `com.docker.*`
+  refused), `volumes` (binds and anonymous volumes only), `expose`.
+- Consumed: `ports` and `container_name` are removed; `links` become network aliases;
+  `networks` are replaced by the range's own.
+- Host-level keys (the list above): only in dangerous environments, with consent.
+- Every bind source in the catalog is a relative path inside the component directory: no
+  absolute bind, not even `/etc/localtime`, had to be allowed.
+- Interpolation: the rendered file must not depend on the environment of whoever runs
+  `sosya up`. `${VAR:-default}` and `${VAR-default}` become their default; `$$` is kept. Any
+  other form is refused. The catalog uses only these two forms (airflow, chartbrew,
+  jumpserver, neo4j, rocketchat).
 
 At the pinned Vulhub commit, 2 of the 334 environments are marked, both for `privileged: true`:
 
@@ -159,9 +185,16 @@ Consequences:
 - Every gallery target is amd64 only. On arm64 hosts, these images run only under emulation
   (QEMU/binfmt or Rosetta), which is slow and sometimes broken. `sosya doctor` keeps warning on
   ARM hosts.
-- The renderer sets `platform: linux/amd64` on every Vulhub service. Then an ARM host with
-  emulation pulls the right image and gets a clear error otherwise, instead of a silent
-  `no matching manifest`. The attacker box keeps the native platform.
+- The renderer sets `platform:` on every Vulhub service: the engine's own platform when the
+  image has it, otherwise `linux/amd64`. An ARM host with emulation then pulls the right image
+  and gets a clear error otherwise, instead of a silent `no matching manifest`, and the one
+  arm64-only environment (`python/CVE-2024-23334`) still runs natively on ARM. The attacker box
+  keeps the native platform.
+- The host platform is read from the Docker daemon (`docker info`, `OSType/Architecture`), not
+  from Python: `platform.machine()` is wrong for an x86_64 Python under Rosetta and for a remote
+  Docker context. `sosya catalog` falls back to it only when the daemon does not answer.
+- `spec.check_catalog` fails a range whose images cannot run on the engine's platform, and
+  warns when they run only under emulation (amd64 images on an arm64 engine).
 - `openssh/CVE-2018-15473` uses `build:`, so it is not in the image-only set. Its base image is
   amd64 only as well.
 
@@ -204,10 +237,22 @@ The three environments in the last two rows do not start on an amd64 host as the
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
-  `enable_ipv6: false` and the `isolated` gateway option. `egress` exists only when `attacker.internet` is true. The attacker
-  box gets the `ip_forward` sysctl. `platform: linux/amd64` goes on Vulhub services. Snapshot
-  tests should assert that the rendered output contains no `ports` outside the `127.0.0.1`
-  networks.
+  `enable_ipv6: false` and the `isolated` gateway option. `egress` exists only when
+  `attacker.internet` is true. The attacker box gets the `ip_forward` sysctl. Vulhub services
+  get `platform:` as described in [Image architectures](#image-architectures). Snapshot
+  tests assert that the rendered output contains no `ports` outside the `127.0.0.1` networks.
+- Names: in a host, the main service takes the host's name (the service named by `service:`,
+  else the first one with `ports`); the others become `<host>-<service>`. Every service that
+  Vulhub publishes with `ports` joins the host's segment networks; services without ports stay
+  private. A component with two or more services gets a private network `<host>-net`, with the
+  original service names (and `links` aliases) as network aliases, so `DB_HOST=mysql` keeps
+  working; a single-service component needs none, which saves networks from Docker's address
+  pools. Clashing generated names, and DNS names that would mean two containers to the same
+  container, are errors in both `check_catalog` and the renderer.
+- Bind mounts: each range works on its own copy of the component's files, in
+  `.sosya/ranges/<name>/files/<host>/`, because targets are compromised by design. The shared
+  Vulhub cache is only the source for `build` contexts and `env_file`. `sosya down` deletes the
+  copy, with a throwaway container when a target left files owned by root.
 - `runtime/`: check the Docker Engine version (at least 28.0.0) before `up`, and enforce
   `--allow-privileged` with a confirmation for dangerous environments (in both `up` and `new`).
 - `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment.
