@@ -218,6 +218,15 @@ def parse_readme(readme: str) -> tuple[str | None, str, list[str]]:
 # --- entry -----------------------------------------------------------------------------------
 
 
+def fallback_summary(title: str, cves: list[str]) -> str:
+    """A summary for a README whose intro has no descriptive text: the title and its CVEs."""
+    missing = [cve for cve in cves if cve.upper() not in title.upper()]
+    text = title.rstrip(". ")
+    if missing:
+        text += ". " + ", ".join(missing)
+    return _truncate(text + ".")
+
+
 def parse_environment(
     meta: Mapping[str, Any],
     compose_text: str,
@@ -253,14 +262,16 @@ def parse_environment(
         files.extend(local_files(name, service))
         dangerous.extend(danger_reasons(name, service))
     title, summary, references = parse_readme(readme_text)
+    title = title or str(meta.get("name", path))
+    cves = sorted({cve.upper() for cve in meta.get("cve", [])})
     return Entry(
         id=f"vulhub/{path}",
         path=path,
         product=str(meta.get("app", path.split("/")[0])),
         product_dir=path.split("/")[0],
-        cves=sorted({cve.upper() for cve in meta.get("cve", [])}),
-        title=title or str(meta.get("name", path)),
-        summary=summary,
+        cves=cves,
+        title=title,
+        summary=summary or fallback_summary(title, cves),
         references=references,
         tags=list(meta.get("tags", [])),
         services=services,

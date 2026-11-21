@@ -113,7 +113,7 @@
      ]
     }
    ],
-   "summary": "",
+   "summary": "ActiveMQ Arbitrary File Write Vulnerability (CVE-2016-3088).",
    "tags": [
     "File Upload",
     "RCE",
@@ -1175,7 +1175,7 @@
      ]
     }
    ],
-   "summary": "",
+   "summary": "Bash Shellshock Remote Command Injection (CVE-2014-6271).",
    "tags": [
     "RCE"
    ],
@@ -13811,7 +13811,7 @@
      "ports": []
     }
    ],
-   "summary": "",
+   "summary": "ThinkPHP5 SQL Injection Vulnerability && Sensitive Information Disclosure Vulnerability.",
    "tags": [
     "SQL Injection",
     "Info Disclosure"
@@ -14932,7 +14932,7 @@
      "ports": []
     }
    ],
-   "summary": "",
+   "summary": "Wordpress 4.6 Remote Code Execution Vulnerability (PwnScriptum).",
    "tags": [
     "RCE",
     "CMS"

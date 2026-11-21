@@ -92,6 +92,7 @@ def test_every_entry_is_complete(index: CatalogIndex) -> None:
     for entry in index.entries:
         assert entry.id == f"vulhub/{entry.path}"
         assert entry.title
+        assert entry.summary, entry.id
         assert entry.services
         for service in entry.services:
             assert service.image or service.build_context, (entry.id, service.name)

@@ -4,6 +4,7 @@ from sosya.catalog.models import Port
 from sosya.catalog.parse import (
     ParseError,
     danger_reasons,
+    fallback_summary,
     final_base_image,
     local_files,
     parse_environment,
@@ -226,3 +227,20 @@ def test_with_platforms_fills_every_service() -> None:
 def test_compose_without_services_is_an_error() -> None:
     with pytest.raises(ParseError):
         parse_environment({"path": "a/b"}, "version: '2'\n", "", {}.get)
+
+
+def test_fallback_summary_uses_the_title_and_missing_cves() -> None:
+    assert fallback_summary("Bash Shellshock (CVE-2014-6271)", ["CVE-2014-6271"]) == (
+        "Bash Shellshock (CVE-2014-6271)."
+    )
+    assert fallback_summary("Example RCE", ["CVE-2099-0001", "CVE-2099-0002"]) == (
+        "Example RCE. CVE-2099-0001, CVE-2099-0002."
+    )
+    assert fallback_summary("WordPress PwnScriptum.", []) == "WordPress PwnScriptum."
+
+
+def test_empty_readme_summary_falls_back_to_the_title() -> None:
+    meta = {"name": "x", "app": "Example", "path": "example/x", "cve": ["cve-2099-0001"]}
+    readme = "# Example RCE\n\nBuild and run the vulnerable environment:\n\n```\nup\n```\n"
+    entry = parse_environment(meta, COMPOSE, readme, {}.get)
+    assert entry.summary == "Example RCE. CVE-2099-0001."
