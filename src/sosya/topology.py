@@ -175,3 +175,41 @@ def name_problems(topology: Topology) -> list[tuple[str, str]]:
                 )
             )
     return problems
+
+
+@dataclass(frozen=True)
+class Hop:
+    host: str
+    """The host to pivot through."""
+    into: str
+    """The network that host opens up."""
+
+
+def routes(spec: "RangeSpec") -> dict[str, list[Hop] | None]:
+    """How to reach each host that shares no network with the attacker box.
+
+    A host on two networks is the only path between them, so this is a breadth-first search
+    over the networks, through dual-homed hosts. Hosts the attacker reaches directly are left
+    out; a host on networks no path reaches maps to None. Ties follow the order of the hosts
+    in the spec, so the answer is always the same.
+    """
+    paths: dict[str, list[Hop]] = {network: [] for network in spec.attacker.networks}
+    frontier = list(spec.attacker.networks)
+    while frontier:
+        following: list[str] = []
+        for network in frontier:
+            for host in spec.hosts:
+                if network not in host.networks:
+                    continue
+                for other in host.networks:
+                    if other not in paths:
+                        paths[other] = [*paths[network], Hop(host.name, other)]
+                        following.append(other)
+        frontier = following
+    found: dict[str, list[Hop] | None] = {}
+    for host in spec.hosts:
+        if any(network in spec.attacker.networks for network in host.networks):
+            continue
+        reached = [paths[n] for n in host.networks if n in paths]
+        found[host.name] = min(reached, key=len) if reached else None
+    return found

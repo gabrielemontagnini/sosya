@@ -65,3 +65,35 @@ def test_link_aliases_become_private_aliases() -> None:
     plan = topology.build(spec([host]), lambda _: definitions)
     aliases = {c.original: c.private_aliases for c in plan.containers if c.host == "app"}
     assert aliases == {"app": ("app",), "database": ("database", "db"), "cache": ("cache",)}
+
+
+def test_routes_skip_direct_hosts_and_find_the_shortest_pivot() -> None:
+    from sosya.spec import parse_range
+
+    spec = parse_range(
+        {
+            "apiVersion": "sosya/v1",
+            "name": "chain",
+            "networks": ["dmz", "internal", "vault", "island"],
+            "hosts": [
+                {
+                    "name": "web",
+                    "component": "vulhub/struts2/s2-045",
+                    "networks": ["dmz", "internal"],
+                },
+                {
+                    "name": "db",
+                    "component": "vulhub/redis/4-unacc",
+                    "networks": ["internal", "vault"],
+                },
+                {"name": "core", "component": "vulhub/redis/4-unacc", "networks": ["vault"]},
+                {"name": "lost", "component": "vulhub/redis/4-unacc", "networks": ["island"]},
+            ],
+            "attacker": {"networks": ["dmz"]},
+        }
+    )
+    found = topology.routes(spec)
+    assert "web" not in found
+    assert found["db"] == [topology.Hop("web", "internal")]
+    assert found["core"] == [topology.Hop("web", "internal"), topology.Hop("db", "vault")]
+    assert found["lost"] is None

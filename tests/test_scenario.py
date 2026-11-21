@@ -97,9 +97,11 @@ def test_up_places_flags_and_writes_the_scenario(
     scenario = workspace.scenario_file("dmz-redis")
     text = scenario.read_text()
     assert "`/flag.txt`" in text
+    assert "Hint 3: the spoiler" in text and "Pivot through web" in text
     for flag in record.flags.values():
         assert flag["value"] not in text
         assert flag["value"] not in log.text()
+    assert re.search(r"SOSYA\{[0-9a-f]{32}\}", text) is None
     assert "sosya shell dmz-redis" in log.lines[-1][1]
     assert str(scenario.resolve()) in log.lines[-1][1]
 
@@ -156,3 +158,76 @@ def test_scenario_says_whether_the_attacker_has_internet(internet: bool) -> None
     )
     text = markdown.render(spec, load_index(), {})
     assert ("has internet access" in text) is internet
+
+
+def _chain_spec():
+    from sosya.spec import parse_range
+
+    return parse_range(
+        {
+            "apiVersion": "sosya/v1",
+            "name": "chain",
+            "networks": ["dmz", "internal", "vault"],
+            "hosts": [
+                {
+                    "name": "web",
+                    "component": "vulhub/struts2/s2-045",
+                    "networks": ["dmz", "internal"],
+                },
+                {
+                    "name": "db",
+                    "component": "vulhub/redis/4-unacc",
+                    "networks": ["internal", "vault"],
+                },
+                {"name": "core", "component": "vulhub/redis/4-unacc", "networks": ["vault"]},
+            ],
+            "attacker": {"networks": ["dmz"]},
+        }
+    )
+
+
+def test_scenario_gives_the_way_in_for_hosts_behind_a_pivot() -> None:
+    text = markdown.render(_chain_spec(), load_index(), {})
+    web = text.split("### web")[1].split("### db")[0]
+    db = text.split("### db")[1].split("### core")[0]
+    core = text.split("### core")[1]
+    assert "The way in" not in web  # the attacker reaches it directly
+    assert "Pivot through web, which also joins internal." in db
+    assert "Pivot through web, which also joins internal; then db, which also joins vault." in core
+
+
+def test_hints_are_closed_and_in_order() -> None:
+    text = markdown.render(_chain_spec(), load_index(), {})
+    assert "<details open" not in text
+    section = text.split("### db")[1].split("### core")[0]
+    order = ["The way in", "Hint 1: what runs here", "Hint 2: the kind", "Hint 3: the spoiler"]
+    positions = [section.index(title) for title in order]
+    assert positions == sorted(positions)
+
+
+def test_hint_1_and_2_never_name_a_cve_or_the_title() -> None:
+    cve = re.compile(r"CVE-\d{4}-\d+", re.IGNORECASE)
+    for entry in load_index().entries:
+        first = markdown.product_hint(entry, ["web (8080/tcp)"])
+        second = markdown.class_hint(entry)
+        for hint in (first, second):
+            assert cve.search(hint) is None, entry.id
+            assert entry.title not in hint, entry.id
+        assert entry.product in first
+
+
+def test_class_hint_falls_back_when_the_catalog_has_no_class() -> None:
+    entry = load_index().get("vulhub/struts2/s2-045")
+    assert entry is not None
+    only_kind = entry.model_copy(update={"tags": ["Framework"]})
+    assert markdown.class_hint(only_kind) == markdown.NO_CLASS
+    assert "remote code execution" in markdown.class_hint(entry)
+
+
+def test_the_spoiler_holds_the_title_cves_and_vulhub_link() -> None:
+    text = markdown.render(_chain_spec(), load_index(), {})
+    spoiler = text.split("Hint 3: the spoiler")[1].split("</details>")[0]
+    assert "CVE-2017-5638" in spoiler and "S2-045" in spoiler
+    assert "vulhub/tree/" in spoiler
+    before = text.split("Hint 3: the spoiler")[0]
+    assert "CVE-2017-5638" not in before

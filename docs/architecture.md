@@ -322,9 +322,20 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   host.
 - **SCENARIO.md** is deterministic: it is generated from `range.yaml` and the catalog, with no
   LLM call. It holds the description, objectives, network map, hosts with the actual flag
-  paths (never the values), and spoilers in progressive `<details>` blocks: product and title,
-  then CVE links, the Vulhub page at the pinned commit and the references. `sosya up` writes it
-  next to the compose file and prints its path with `sosya shell <name>`.
+  paths (never the values), and progressive hints in closed `<details>` blocks, three per host:
+  1. what runs there: the product, its kind (the category tags: Framework, Webserver,
+     Database, CMS, Message Queue, LLM) and the published services with their ports. The title
+     is not shown, because Vulhub titles often contain the CVE;
+  2. the class of the vulnerability, from the catalog's vulnerability tags (RCE, Path
+     Traversal, Auth Bypass, Deserialization, ...), never a CVE. The 7 entries that have only
+     category tags get a fixed line that points to hint 3;
+  3. the spoiler: the title, the CVE links, the Vulhub page at the pinned commit and the
+     references.
+
+  A host that shares no network with the attacker box gets one more block first, "The way in":
+  the hosts to pivot through and the network each one opens. It comes from a breadth-first
+  search over the networks (`topology.routes`). `sosya up` writes SCENARIO.md next to the
+  compose file and prints its path with `sosya shell <name>`.
 
 ## Live validation
 

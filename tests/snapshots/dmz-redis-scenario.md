@@ -27,19 +27,27 @@ The attacker box joins dmz and has internet access. Targets have no internet acc
 
 Flags look like `SOSYA{...}` and change every time the range starts.
 
-## Spoilers
+## Hints
 
-Open these only when you are stuck.
+Open them one at a time, only when you are stuck.
 
 ### web
 
 <details><summary>Hint 1: what runs here</summary>
 
-Apache Struts2: S2-045 Remote Code Execution Vulnerablity（CVE-2017-5638）
+Apache Struts2 (Framework). Listening: web (8080/tcp).
 
 </details>
 
-<details><summary>Hint 2: the vulnerability</summary>
+<details><summary>Hint 2: the kind of vulnerability</summary>
+
+The vulnerability class: remote code execution.
+
+</details>
+
+<details><summary>Hint 3: the spoiler</summary>
+
+S2-045 Remote Code Execution Vulnerablity（CVE-2017-5638）
 
 - [CVE-2017-5638](https://nvd.nist.gov/vuln/detail/CVE-2017-5638)
 - Vulhub environment: [struts2/s2-045](https://github.com/vulhub/vulhub/tree/9b90d4276f84feed6333286afeb7e1250379a1da/struts2/s2-045)
@@ -50,13 +58,27 @@ Apache Struts2: S2-045 Remote Code Execution Vulnerablity（CVE-2017-5638）
 
 ### cache
 
-<details><summary>Hint 1: what runs here</summary>
+<details><summary>The way in</summary>
 
-Redis: Redis Post Exploitation Due to Master and Slave Synchronisation
+The attacker box does not reach this host directly. Pivot through web, which also joins internal.
 
 </details>
 
-<details><summary>Hint 2: the vulnerability</summary>
+<details><summary>Hint 1: what runs here</summary>
+
+Redis (Database). Listening: cache (6379/tcp).
+
+</details>
+
+<details><summary>Hint 2: the kind of vulnerability</summary>
+
+The vulnerability class: remote code execution.
+
+</details>
+
+<details><summary>Hint 3: the spoiler</summary>
+
+Redis Post Exploitation Due to Master and Slave Synchronisation
 
 - Vulhub environment: [redis/4-unacc](https://github.com/vulhub/vulhub/tree/9b90d4276f84feed6333286afeb7e1250379a1da/redis/4-unacc)
 - https://2018.zeronights.ru/wp-content/uploads/materials/15-redis-post-exploitation.pdf
