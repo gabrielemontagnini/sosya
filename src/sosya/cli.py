@@ -52,17 +52,122 @@ def main(
     """Sosya builds isolated, verified security labs from a single sentence."""
 
 
-def _not_yet(command: str) -> None:
-    console.print(f"[yellow]sosya {command}[/] is not implemented yet: it is planned for v0.1.")
-    raise typer.Exit(code=1)
+_NEXT = {
+    "queries": "searching the catalog",
+    "candidates": "planning the range",
+    "plan": "starting the containers",
+    "up": "validating",
+    "validate": "planning a repair",
+}
+_PHASE_WIDTH = 10
+
+
+def _duration(seconds: float) -> str:
+    minutes, rest = divmod(round(seconds), 60)
+    return f"{minutes}m{rest:02d}s" if minutes else f"{rest}s"
+
+
+def _plan_table(spec, result) -> Table:
+    emulated = {c.entry.id for c in result.candidates if c.emulated}
+    dangerous = {line.split(":", 1)[0] for line in result.dangerous}
+    table = Table(title=f"plan: {spec.name}", title_justify="left", header_style="bold")
+    for column in ("Host", "Component", "Networks", "Notes"):
+        table.add_column(column)
+    for host in spec.hosts:
+        notes = []
+        if host.name in dangerous:
+            notes.append("[bold red]! host-level privileges[/]")
+        if host.component in emulated:
+            notes.append("[yellow]emulated: slow[/]")
+        table.add_row(
+            host.name,
+            host.component.removeprefix("vulhub/"),
+            ", ".join(host.networks),
+            " ".join(notes),
+        )
+    internet = "internet" if spec.attacker.internet else "no internet"
+    table.add_row("attacker", "Kali attacker box", ", ".join(spec.attacker.networks), internet)
+    return table
 
 
 @app.command()
 def new(
     description: Annotated[str, typer.Argument(help="The lab you want, in plain English.")],
+    model: Annotated[
+        str | None, typer.Option(help="LLM model id. Default: SOSYA_MODEL, else automatic.")
+    ] = None,
+    effort: Annotated[
+        str | None, typer.Option(help="Reasoning effort: low, medium, high, xhigh or max.")
+    ] = None,
+    yes: Annotated[
+        bool, typer.Option("--yes", "-y", help="Start the plan without asking first.")
+    ] = False,
+    allow_privileged: Annotated[
+        bool,
+        typer.Option(
+            "--allow-privileged",
+            help="Allow environments that get host-level privileges, after a confirmation.",
+        ),
+    ] = False,
 ) -> None:
-    """Plan a range from a description, then build and validate it."""
-    _not_yet("new")
+    """Plan a range from a description, then start, validate and repair it."""
+    from sosya import build as builder
+    from sosya import engine, llm
+
+    problem = engine.engine_problem()
+    if problem is not None:
+        _fail(runtime.RangeError(problem))
+    try:
+        adapter = llm.select(model, effort)
+    except llm.LLMError as exc:
+        _fail(exc)
+
+    status = console.status("reading the description")
+
+    def phase(name: str, text: str) -> None:
+        console.print(f"{_MARKS['ok']} {name:<{_PHASE_WIDTH}} {text}", highlight=False)
+        status.update(_NEXT.get(name, "working"))
+
+    def ask(spec, result) -> bool:
+        if yes:
+            return True
+        status.stop()
+        console.print(_plan_table(spec, result))
+        answer = typer.confirm("Start this range?", default=True)
+        status.start()
+        return answer
+
+    def ask_privileged(lines: list[str]) -> bool:
+        status.stop()
+        answer = _confirm_privileged(lines)
+        status.start()
+        return answer
+
+    with status:
+        result = builder.build(
+            description,
+            adapter,
+            report=_report,
+            phase=phase,
+            confirm_plan=ask,
+            confirm_privileged=ask_privileged,
+            allow_privileged=allow_privileged,
+            effort=effort,
+        )
+    if result.outcome == "dangerous" and result.spec is not None:
+        console.print(_plan_table(result.spec, result))
+        for line in result.dangerous:
+            console.print(f"     [red]![/] {line}", highlight=False)
+    total = _duration(result.total)
+    if result.outcome != "green":
+        _report("fail", f"{result.message} ({total})")
+        if result.attempts and result.name:
+            folder = runtime.Workspace().attempts_dir(result.name)
+            console.print(f"     [dim]attempts kept in {folder}[/]", highlight=False)
+        raise typer.Exit(code=1)
+    _report("ok", f"ready {result.name} in {total}")
+    console.print(f"     sosya shell {result.name}", highlight=False)
+    console.print(f"     scenario: {result.scenario_file}", highlight=False)
 
 
 _MARKS = {
