@@ -8,7 +8,7 @@ can still be listed and stopped.
 import json
 import os
 import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 STATE_FILE = "state.json"
@@ -21,6 +21,8 @@ class RangeState:
     compose_file: str
     source: str
     started_at: str
+    flags: dict[str, dict[str, str]] = field(default_factory=dict)
+    """Host → {"path": ..., "value": ...} of the flag injected at the last `up`."""
 
 
 def load(root: Path) -> dict[str, RangeState]:
@@ -31,7 +33,11 @@ def load(root: Path) -> dict[str, RangeState]:
         return {}
     except (OSError, ValueError):
         return {}  # a damaged file must not block `down`; labels still find the ranges
-    return {name: RangeState(**item) for name, item in data.get("ranges", {}).items()}
+    known = set(RangeState.__dataclass_fields__)
+    return {
+        name: RangeState(**{k: v for k, v in item.items() if k in known})
+        for name, item in data.get("ranges", {}).items()
+    }
 
 
 def save(root: Path, states: dict[str, RangeState]) -> None:

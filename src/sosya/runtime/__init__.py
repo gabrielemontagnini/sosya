@@ -15,6 +15,8 @@ from sosya.render import PROJECT_PREFIX, RenderError, dump, project_name, render
 from sosya.runtime import state as state_store
 from sosya.runtime import vulhub
 from sosya.runtime.docker import ContainerInfo, Docker, DockerError
+from sosya.scenario import flags as flag_store
+from sosya.scenario import markdown as scenario
 from sosya.spec import RangeSpec, SpecError, check_catalog, errors, load_range, range_file
 
 WORKSPACE = Path(".sosya")
@@ -47,6 +49,9 @@ class Workspace:
 
     def files_dir(self, name: str) -> Path:
         return self.range_dir(name) / "files"
+
+    def scenario_file(self, name: str) -> Path:
+        return self.range_dir(name) / "SCENARIO.md"
 
 
 @dataclass(frozen=True)
@@ -258,8 +263,43 @@ def up(
     )
     if started.returncode != 0:
         raise _up_failure(started.stderr, docker, spec.name)
-    report("ok", f"range {spec.name} is up: open the attacker box with `sosya shell {spec.name}`")
+    report("ok", f"range {spec.name} is up")
+
+    record = _place_flags(spec, record, docker, report)
+    state_store.record(workspace.root, record)
+    scenario_file = workspace.scenario_file(spec.name)
+    paths = {host: flag["path"] for host, flag in record.flags.items()}
+    scenario_file.write_text(scenario.render(spec, index, paths), encoding="utf-8")
+    report(
+        "ok",
+        f"ready: open the attacker box with `sosya shell {spec.name}`; "
+        f"scenario in {scenario_file.resolve()}",
+    )
     return record
+
+
+def _place_flags(
+    spec: RangeSpec, record: state_store.RangeState, docker: Docker, report: Reporter
+) -> state_store.RangeState:
+    """A new random flag on every host, in its primary container. Never print the values."""
+    by_key = {c.service: c for c in docker.containers(record.project) if c.role == "target"}
+    placed: dict[str, dict[str, str]] = {}
+    failed: list[str] = []
+    for host in spec.hosts:
+        container = by_key.get(host.name)  # the primary container takes the host's name
+        flag = flag_store.place(docker, container.id, host.flag) if container else None
+        if flag is None:
+            failed.append(host.name)
+            continue
+        placed[host.name] = {"path": flag.path, "value": flag.value}
+        if host.flag and flag.path != host.flag:
+            report("warn", f"{host.name}: cannot write {host.flag}; the flag is in {flag.path}")
+    if failed:
+        report("warn", f"no flag could be placed on {', '.join(failed)}")
+    if placed:
+        where = ", ".join(f"{host} {flag['path']}" for host, flag in placed.items())
+        report("ok", f"flags placed: {where}")
+    return state_store.RangeState(**{**record.__dict__, "flags": placed})
 
 
 # --- down ------------------------------------------------------------------------------------

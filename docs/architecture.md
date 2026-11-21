@@ -294,6 +294,24 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
 5. **Dangerous entries** in a draft are not repaired: the build stops on them (see
    [Services with host-level privileges](#services-with-host-level-privileges)).
 
+## Flags and SCENARIO.md
+
+- **Flags.** Every `sosya up` writes a new random flag, `SOSYA{<32 hex>}`, on every host, in
+  its primary container, and stores it in `.sosya/state.json`. It is never printed.
+- **Injection** uses `docker cp -` with an in-memory tar archive, so it needs no shell in the
+  target. The archive holds only the file (mode 0644, root), never a directory entry, so the
+  owner and mode of `/root`, `/tmp` or `/data` do not change. World-readable on purpose:
+  several environments only give a file read or a shell that is not root.
+- **Path.** `flag:` in `range.yaml` (an override for hand-written ranges; the planner never sets
+  it), else `/flag.txt`. If the copy fails (missing directory, read-only root filesystem), the
+  flag goes to `/tmp/flag.txt`. If that fails too, `up` warns and `sosya validate` fails that
+  host.
+- **SCENARIO.md** is deterministic: it is generated from `range.yaml` and the catalog, with no
+  LLM call. It holds the description, objectives, network map, hosts with the actual flag
+  paths (never the values), and spoilers in progressive `<details>` blocks: product and title,
+  then CVE links, the Vulhub page at the pinned commit and the references. `sosya up` writes it
+  next to the compose file and prints its path with `sosya shell <name>`.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,

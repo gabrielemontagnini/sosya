@@ -78,6 +78,35 @@ class Docker:
     ) -> subprocess.CompletedProcess[str]:
         return self.run(["compose", "-p", project, "-f", str(file), *args], capture=capture)
 
+    def copy_in(self, container: str, directory: str, archive: bytes) -> bool:
+        """Extract a tar archive into a container's directory with `docker cp -` (no shell)."""
+        try:
+            proc = self.runner(
+                ["docker", "cp", "-", f"{container}:{directory}"],
+                input=archive,
+                capture_output=True,
+                check=False,
+                timeout=60,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+        return proc.returncode == 0
+
+    def copy_out(self, container: str, path: str) -> bytes | None:
+        """A file from a container as a tar archive (`docker cp <id>:<path> -`), or None."""
+        try:
+            proc = self.runner(
+                ["docker", "cp", f"{container}:{path}", "-"],
+                capture_output=True,
+                check=False,
+                timeout=60,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return None
+        if proc.returncode != 0 or not isinstance(proc.stdout, bytes):
+            return None
+        return proc.stdout
+
     def image_exists(self, image: str) -> bool:
         return self.run(["image", "inspect", "--format", "{{.Id}}", image]).returncode == 0
 
