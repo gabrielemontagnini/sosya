@@ -9,7 +9,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, Protocol
 
-from sosya import attacker, engine
+from sosya import attacker, engine, topology
+from sosya import exposure as exposure_model
 from sosya.catalog.loader import load_index, load_services
 from sosya.catalog.models import Entry
 from sosya.render import PROJECT_PREFIX, RenderError, dump, project_name, render
@@ -178,12 +179,12 @@ def _copy_files(spec: RangeSpec, entries: dict[str, Entry], checkout: Path, file
         shutil.copytree(checkout / entry.path, destination, ignore=shutil.ignore_patterns(".git"))
 
 
-def _pull_missing(docker: Docker, compose: dict, report: Reporter) -> None:
+def _pull_missing(docker: Docker, compose: dict, report: Reporter, attacker_image: str) -> None:
     """Pull only images that are not present: tags are pinned, and pulls cost rate limit."""
-    seen: set[str] = set()
-    for name, service in compose["services"].items():
+    seen: set[str] = {attacker_image}  # already ensured, maybe built locally
+    for service in compose["services"].values():
         image = service.get("image")
-        if not image or "build" in service or image in seen or name == "attacker":
+        if not image or "build" in service or image in seen:
             continue
         seen.add(image)
         if docker.image_exists(image):
@@ -257,8 +258,12 @@ def up(
     allow_privileged: bool = False,
     workspace: Workspace | None = None,
     docker: Docker | None = None,
+    exposure: exposure_model.Exposure | None = None,
 ) -> state_store.RangeState:
-    """Start the range in `path` (a range.yaml or its directory). Return its state record."""
+    """Start the range in `path` (a range.yaml or its directory). Return its state record.
+
+    `exposure` adds the SOCKS5 proxy and the `--expose` forwards, on 127.0.0.1 only.
+    """
     workspace = workspace or Workspace()
     docker = docker or Docker()
     try:
@@ -280,6 +285,10 @@ def up(
     if refused:
         raise RangeError("the range is not valid:\n  " + "\n  ".join(str(i) for i in refused))
     report("ok", f"checked against the catalog ({len(spec.hosts)} hosts, engine {platform})")
+
+    exposure = exposure or exposure_model.Exposure()
+    if not exposure.empty:
+        _check_exposure(spec, exposure, docker, report)
 
     entries = {host.name: index.get(host.component) for host in spec.hosts}
     resolved = {name: entry for name, entry in entries.items() if entry is not None}
@@ -323,6 +332,7 @@ def up(
             allow_privileged=allow_privileged,
             source_dir=(lambda entry: source_root / entry.path) if source_root else None,
             files_dir=workspace.files_dir(spec.name).resolve(),
+            exposure=exposure,
         )
     except RenderError as exc:
         raise RangeError(f"cannot render the range: {exc}") from None
@@ -336,6 +346,8 @@ def up(
         compose_file=str(compose_file),
         source=str(range_file(path).resolve()),
         started_at=_now(),
+        proxy_port=exposure.proxy_port,
+        exposes=[f.__dict__ for f in exposure.forwards],
     )
     # Recorded before anything starts, so a range that fails half-way can still be stopped.
     state_store.record(workspace.root, record)
@@ -343,7 +355,7 @@ def up(
     checked = docker.compose(project, compose_file, "config", "--quiet")
     if checked.returncode != 0:
         raise RangeError(f"docker compose rejected the rendered file:\n{_tail(checked.stderr)}")
-    _pull_missing(docker, compose, report)
+    _pull_missing(docker, compose, report, image)
     report("info", "starting containers")
     deadline = time.monotonic() + WAIT_TIMEOUT
     started = docker.compose(
@@ -360,12 +372,41 @@ def up(
     scenario_file = workspace.scenario_file(spec.name)
     paths = {host: flag["path"] for host, flag in record.flags.items()}
     scenario_file.write_text(scenario.render(spec, index, paths), encoding="utf-8")
+    if exposure.proxy_port is not None:
+        internet = "" if spec.attacker.internet else " (no internet: the attacker box has none)"
+        report("ok", f"proxy socks5h://127.0.0.1:{exposure.proxy_port}{internet}")
+    for forward in exposure.forwards:
+        report("ok", f"{forward.label} on 127.0.0.1:{forward.local}")
     report(
         "ok",
         f"ready: open the attacker box with `sosya shell {spec.name}`; "
         f"scenario in {scenario_file.resolve()}",
     )
     return record
+
+
+def _check_exposure(
+    spec: RangeSpec, exposure: exposure_model.Exposure, docker: Docker, report: Reporter
+) -> None:
+    try:
+        problems = exposure_model.problems(exposure, topology.build(spec, load_services))
+    except exposure_model.ExposureError as exc:
+        problems = [str(exc)]
+    if problems:
+        raise RangeError("cannot publish on 127.0.0.1:\n  " + "\n  ".join(problems))
+    running = any(
+        c.role == exposure_model.ROLE and c.state == "running"
+        for c in docker.containers(project_name(spec.name))
+    )
+    taken = [] if running else exposure_model.busy(exposure.local_ports)
+    if taken:
+        ports = ", ".join(f"127.0.0.1:{port}" for port in taken)
+        raise HostEnvironmentError(
+            f"{ports} already in use: pick another port with --proxy-port or "
+            "--expose HOST:PORT:LOCAL_PORT"
+        )
+    for forward in exposure.forwards:
+        report("warn", f"publishing {forward.label} on 127.0.0.1:{forward.local} (localhost only)")
 
 
 def _place_flags(

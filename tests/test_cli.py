@@ -83,7 +83,7 @@ def lab(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_up_passes_the_path_and_prints_steps(lab: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     seen: dict[str, Any] = {}
 
-    def fake_up(path: Path, *, report, confirm, allow_privileged: bool) -> None:
+    def fake_up(path: Path, *, report, confirm, allow_privileged: bool, exposure) -> None:
         seen.update(path=path, allow_privileged=allow_privileged)
         report("ok", "range lab is up")
 
@@ -92,6 +92,27 @@ def test_up_passes_the_path_and_prints_steps(lab: Path, monkeypatch: pytest.Monk
     assert result.exit_code == 0, result.output
     assert seen == {"path": Path("lab"), "allow_privileged": True}
     assert "ok" in result.output and "range lab is up" in result.output
+
+
+def test_up_passes_proxy_and_expose(lab: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from sosya.exposure import Exposure, Forward
+
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr(runtime, "up", lambda path, **kwargs: seen.update(kwargs))
+    result = runner.invoke(app, ["up", "lab"])
+    assert result.exit_code == 0 and seen["exposure"] == Exposure()
+    argv = ["up", "lab", "--proxy", "--proxy-port", "1081", "--expose", "web:8080"]
+    result = runner.invoke(app, [*argv, "--expose", "web:22:2222"])
+    assert result.exit_code == 0, result.output
+    assert seen["exposure"] == Exposure(
+        1081, (Forward("web", 8080, 8080), Forward("web", 22, 2222))
+    )
+    assert "Start" not in result.output  # no confirmation: 127.0.0.1 only, a warning is enough
+
+
+def test_up_refuses_a_malformed_expose(lab: Path) -> None:
+    result = runner.invoke(app, ["up", "lab", "--expose", "web"])
+    assert result.exit_code == 1 and "HOST:PORT" in result.output
 
 
 def test_up_failure_exits_with_one(lab: Path, monkeypatch: pytest.MonkeyPatch) -> None:

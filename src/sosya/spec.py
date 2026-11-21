@@ -30,8 +30,8 @@ from sosya.catalog.rules import RuleError, check_service, interpolate
 
 API_VERSION = "sosya/v1"
 RANGE_FILE = "range.yaml"
-RESERVED_NETWORKS = frozenset({topology.EGRESS, "proxy", "expose"})
-RESERVED_HOSTS = frozenset({topology.ATTACKER})
+RESERVED_NETWORKS = frozenset({topology.EGRESS, "proxy", "expose", "relay"})
+RESERVED_HOSTS = frozenset({topology.ATTACKER, "relay", "attacker-relay", "attacker-link"})
 _FLAG_PATH = re.compile(r"^/[A-Za-z0-9._/-]+$")
 EMULATED = {"linux/arm64": "linux/amd64"}
 """Host platform → foreign platform it can usually run under emulation."""

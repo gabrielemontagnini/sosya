@@ -14,6 +14,7 @@ from typing import Any
 
 import yaml
 
+from sosya import exposure as exposure_model
 from sosya import topology
 from sosya.catalog.models import CatalogIndex, Entry, Service
 from sosya.catalog.rules import (
@@ -230,6 +231,55 @@ def _attacker(spec: RangeSpec, container: topology.Container, image: str) -> dic
     }
 
 
+def _relay_services(
+    spec: RangeSpec, exposure: exposure_model.Exposure, image: str
+) -> dict[str, dict[str, Any]]:
+    """`attacker-relay` (in the attacker box's namespace) and `relay` (the only published one)."""
+    forward_args: list[str] = []
+    if exposure.proxy_port is not None:
+        forward_args += ["--socks", str(exposure.proxy_port)]
+    forward_args += [f"{f.local}={f.target}:{f.port}" for f in exposure.forwards]
+    healthcheck = {
+        "test": ["CMD", "test", "-f", exposure_model.READY_FILE],
+        "interval": "1s",
+        "timeout": "3s",
+        "retries": 60,
+    }
+    labels = {LABEL_RANGE: spec.name, LABEL_ROLE: exposure_model.ROLE}
+    ports = exposure.local_ports
+    for port in ports:
+        assert 1 <= port <= 65535
+    published = [f"{exposure_model.LOCALHOST}:{port}:{port}" for port in ports]
+    # Only ever 127.0.0.1: an empty or wildcard address would publish on every interface.
+    assert all(item.startswith(f"{exposure_model.LOCALHOST}:") for item in published)
+    return {
+        exposure_model.FORWARDER: {
+            "image": image,
+            "network_mode": f"service:{topology.ATTACKER}",
+            "init": True,
+            "command": ["sosya-forward", *forward_args],
+            "healthcheck": copy.deepcopy(healthcheck),
+            "labels": {**labels, LABEL_HOST: exposure_model.FORWARDER},
+            "pids_limit": PIDS_LIMIT,
+            "logging": copy.deepcopy(LOGGING),
+        },
+        exposure_model.RELAY: {
+            "image": image,
+            "hostname": exposure_model.RELAY,
+            "init": True,
+            "sysctls": {"net.ipv4.ip_forward": "0"},
+            "command": ["sosya-relay", *(str(port) for port in ports)],
+            "networks": {exposure_model.RELAY_NETWORK: {}, exposure_model.PUBLISH_NETWORK: {}},
+            "ports": published,
+            "depends_on": {exposure_model.FORWARDER: {"condition": "service_healthy"}},
+            "healthcheck": copy.deepcopy(healthcheck),
+            "labels": {**labels, LABEL_HOST: exposure_model.RELAY},
+            "pids_limit": PIDS_LIMIT,
+            "logging": copy.deepcopy(LOGGING),
+        },
+    }
+
+
 def render(
     spec: RangeSpec,
     index: CatalogIndex,
@@ -240,6 +290,7 @@ def render(
     allow_privileged: bool = False,
     source_dir: Callable[[Entry], Path] | None = None,
     files_dir: Path | None = None,
+    exposure: exposure_model.Exposure | None = None,
 ) -> dict[str, Any]:
     """Return the compose project as a mapping. Raise `RenderError` on anything not allowed.
 
@@ -288,6 +339,17 @@ def render(
             _put(services, container.key, rendered, "service")
     attacker = next(c for c in plan.containers if c.host == topology.ATTACKER)
     _put(services, attacker.key, _attacker(spec, attacker, attacker_image), "service")
+    relayed = exposure is not None and not exposure.empty
+    if relayed:
+        assert exposure is not None
+        problems = exposure_model.problems(exposure, plan)
+        if problems:
+            raise RenderError("; ".join(problems))
+        services[attacker.key]["networks"][exposure_model.RELAY_NETWORK] = {
+            "aliases": [exposure_model.LINK_ALIAS]
+        }
+        for key, service in _relay_services(spec, exposure, attacker_image).items():
+            _put(services, key, service, "service")
 
     network_labels = {LABEL_RANGE: spec.name}
     networks: dict[str, Any] = {}
@@ -298,6 +360,13 @@ def render(
     if plan.egress:
         # A plain bridge with internet access. Only the attacker box joins it.
         _put(networks, topology.EGRESS, {"labels": network_labels}, "network")
+    if relayed:
+        # Internal and isolated: only the attacker box and the relay.
+        relay_network = {**copy.deepcopy(SEGMENT_NETWORK), "labels": network_labels}
+        _put(networks, exposure_model.RELAY_NETWORK, relay_network, "network")
+        # Not internal, so that ports can be published, on 127.0.0.1 only. Only the relay.
+        published = {"enable_ipv6": False, "labels": network_labels}
+        _put(networks, exposure_model.PUBLISH_NETWORK, published, "network")
     return {"name": project_name(spec.name), "services": services, "networks": networks}
 
 

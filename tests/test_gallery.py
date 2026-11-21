@@ -37,7 +37,7 @@ def test_up_finds_a_gallery_range_from_an_empty_directory(
     monkeypatch.chdir(tmp_path)
     seen: dict[str, Path] = {}
 
-    def fake_up(path: Path, *, report, confirm, allow_privileged: bool) -> None:
+    def fake_up(path: Path, *, report, confirm, allow_privileged: bool, exposure) -> None:
         seen["path"] = path
 
     monkeypatch.setattr(runtime, "up", fake_up)
@@ -55,7 +55,7 @@ def test_ranges_folder_wins_over_the_gallery(
     (local / "range.yaml").write_text((gallery.path("dmz-redis") / "range.yaml").read_text())
     seen: dict[str, Path] = {}
 
-    def fake_up(path: Path, *, report, confirm, allow_privileged: bool) -> None:
+    def fake_up(path: Path, *, report, confirm, allow_privileged: bool, exposure) -> None:
         seen["path"] = path
 
     monkeypatch.setattr(runtime, "up", fake_up)

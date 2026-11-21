@@ -129,3 +129,51 @@ def host_connects(ip: str, port: int, timeout: float = 2.0) -> bool:
             return True
     except OSError:
         return False
+
+
+def bindings(data: dict[str, Any]) -> list[tuple[str, str, str]]:
+    """(container port, host IP, host port) of every published port of a container."""
+    found = []
+    for port, items in sorted(((data.get("HostConfig") or {}).get("PortBindings") or {}).items()):
+        for item in items or []:
+            found.append((port, str(item.get("HostIp") or ""), str(item.get("HostPort") or "")))
+    return found
+
+
+def host_addresses() -> list[str]:
+    """This machine's own non-loopback addresses (IPv4 and IPv6), to check that nothing of a
+    range answers on them. No packet is sent: a UDP socket only picks its source address."""
+    found: list[str] = []
+    for family, probe in ((socket.AF_INET, "192.0.2.1"), (socket.AF_INET6, "2001:db8::1")):
+        try:
+            with socket.socket(family, socket.SOCK_DGRAM) as sock:
+                sock.connect((probe, 9))
+                found.append(str(sock.getsockname()[0]))
+        except OSError:
+            pass
+    try:
+        for *_, address in socket.getaddrinfo(socket.gethostname(), None):
+            found.append(str(address[0]))
+    except OSError:
+        pass
+    usable = []
+    for address in found:
+        if address.startswith(("127.", "::1", "fe80:")) or address == "::":
+            continue
+        if address not in usable:
+            usable.append(address)
+    return usable
+
+
+def forward_answers(port: int, host: str = "127.0.0.1", timeout: float = 2.0) -> bool:
+    """A forward that reaches its service keeps the connection open, or sends a banner; one
+    whose service does not answer is closed at once by the relay."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            sock.settimeout(1.5)
+            try:
+                return sock.recv(1) != b""
+            except TimeoutError:
+                return True  # open and waiting for the client to speak, as HTTP does
+    except OSError:
+        return False

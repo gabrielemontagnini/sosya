@@ -10,6 +10,7 @@ import os
 import tempfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 STATE_FILE = "state.json"
 
@@ -23,6 +24,10 @@ class RangeState:
     started_at: str
     flags: dict[str, dict[str, str]] = field(default_factory=dict)
     """Host → {"path": ..., "value": ...} of the flag injected at the last `up`."""
+    proxy_port: int | None = None
+    """The SOCKS5 proxy on 127.0.0.1, with `up --proxy`."""
+    exposes: list[dict[str, Any]] = field(default_factory=list)
+    """`up --expose`: {"target", "port", "local"} for each forward on 127.0.0.1."""
 
 
 def load(root: Path) -> dict[str, RangeState]:

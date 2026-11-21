@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 from snapshot import assert_snapshot
-from test_runtime import FakeDocker, container, done, fake, range_dir, start, workspace
+from test_runtime import FakeDocker, container, done, start
 
 from sosya import gallery, runtime
 from sosya.catalog.loader import load_index
@@ -15,8 +15,6 @@ from sosya.runtime import state as state_store
 from sosya.runtime.docker import Docker
 from sosya.scenario import flags, markdown
 from sosya.spec import load_range
-
-__all__ = ["fake", "range_dir", "workspace"]  # pytest fixtures imported from test_runtime
 
 
 def test_flags_are_random_and_well_formed() -> None:

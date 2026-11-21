@@ -26,8 +26,9 @@ Decided on 2026-11-20 from a spike run on Docker Engine 29.10.0 and Docker Compo
 5. **Pivoting comes from dual-homed hosts only.** A host on two segments, such as `web` on
    `dmz` and `internal`, is the only path between them. The attacker box joins only the
    segments listed in `attacker.networks`.
-6. **`--expose` and `--proxy` publish on `127.0.0.1` only**, through a separate network that is
-   not internal (the same pattern as `egress`). An address that is empty or `0.0.0.0` is a bug.
+6. **`--expose` and `--proxy` publish on `127.0.0.1` only**, through a relay on a separate
+   network that is not internal. Targets never join it. An address that is empty or `0.0.0.0` is
+   a bug. See [Proxy and expose](#proxy-and-expose).
 7. **Networks are IPv4 only.** Segment networks set `enable_ipv6: false` explicitly, instead
    of relying on the daemon default. If IPv6 is ever enabled, set `gateway_mode_ipv6: isolated`
    too.
@@ -338,6 +339,7 @@ isolation checks as CI.
 | segmentation | attacker → containers on no shared network, by name and by IP | unresolved or refused |
 | no internet | every target namespace: DNS, TCP v4 and v6, HTTP, default route | all fail |
 | host isolation | published ports; host → every target IP and port | none; refused |
+| exposure | with `--proxy`/`--expose`: see [Proxy and expose](#proxy-and-expose) | all hold |
 | attacker | `net.ipv4.ip_forward` | `0` |
 | attacker | internet access, when `internet: true` | warning only: never fails the range, never sent to the LLM |
 | flag | `docker cp` of each flag | the value recorded at `up` |
@@ -402,6 +404,58 @@ Ten fixed prompts in `evals/gate2.yaml`, run with `evals/run.py` (Anthropic, son
   environment.
 
 Reports: `evals/reports/gate2-plan-20261121-152805.md` and `evals/reports/gate2-20261121-153128.md`.
+
+## Proxy and expose
+
+`sosya up --proxy [--proxy-port 1080]` adds a SOCKS5 proxy for the host's browser or Burp;
+`--expose HOST:PORT[:LOCAL_PORT]` (repeatable) publishes one service. Both publish on
+`127.0.0.1` only and print one warning line per forward: there is no confirmation prompt, which
+stays reserved for dangerous environments. Measured on Engine 29.10 (2026-11-21).
+
+```
+host 127.0.0.1:P ──► relay ── network `proxy`: plain bridge, IPv6 off, only the relay,
+                       │      ports 127.0.0.1:P:P
+                       ▼ network `relay`: internal, gateway isolated, IPv6 off
+                 attacker-relay (network_mode: service:attacker)
+                   microsocks and socat bound ONLY to the attacker box's `relay` address
+                       ▼ the attacker box's own segments
+                     targets
+```
+
+Invariants:
+
+1. **127.0.0.1 only**, never every interface, in IPv4 or IPv6: the renderer writes
+   `127.0.0.1:P:P` and asserts it; the `proxy` network has IPv6 off.
+2. **Targets never join a network that is not internal.** Only the relay joins `proxy`; it joins
+   no segment.
+3. **The proxy reaches only what the attacker box reaches**: microsocks runs in the box's
+   network namespace and resolves names with its DNS. With `internet: false` the box joins only
+   internal networks (`relay` included), so it has no default route and the proxy gives no
+   internet. `--expose` goes through the attacker box as well, so it accepts only services the
+   box reaches.
+4. **Targets cannot use the proxy or the relay.** The forwarder listens only on the box's
+   address on `relay`, which no target joins; nothing listens on the box's segment addresses.
+   The relay sets `ip_forward=0` and listens only on its `proxy` address (the one with the
+   default route).
+
+The two containers use the attacker image (`sosya-forward`, `sosya-relay`, with `socat` and
+`microsocks`) and are healthy only once every listener is up, so `up --wait` waits for them.
+`relay`, `attacker-relay` and `attacker-link` are reserved host names, `relay` a reserved
+network name. The state records `proxy_port` and `exposes`; before starting, `up` fails if a
+local port is taken, unless the range's own relay holds it.
+
+`sosya validate` adds the group `exposure`:
+
+| Check | Pass when |
+| --- | --- |
+| `relay`, `attacker-relay` | running and healthy |
+| relay ports | every binding is `127.0.0.1`, exactly the expected ports; no binding on the attacker box or the forwarder |
+| host → `127.0.0.1:P` | answers |
+| host → `[::1]:P` and the host's own addresses (spike check 5) | refused |
+| proxy → every service the attacker box shares a network with | SOCKS5 CONNECT succeeds (an optional port only warns) |
+| proxy → `1.1.1.1:443`, `example.com:443`, with `internet: false` | refused |
+| `127.0.0.1:L` → each forward | the service answers (the connection stays open or sends a banner) |
+| every target → the relay and the attacker box, on every address and port | blocked, run in the target's namespace script |
 
 ## MCP server
 

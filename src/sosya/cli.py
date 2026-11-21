@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from sosya import __version__, gallery, runtime
+from sosya import __version__, exposure, gallery, runtime
 from sosya.catalog.display import host_platform, results_json, results_table
 from sosya.catalog.loader import load_index
 from sosya.catalog.search import DEFAULT_LIMIT, search
@@ -238,14 +238,38 @@ def up(
             help="Allow environments that get host-level privileges, after a confirmation.",
         ),
     ] = False,
+    proxy: Annotated[
+        bool,
+        typer.Option(
+            "--proxy",
+            help="Add a SOCKS5 proxy on 127.0.0.1 for your browser or Burp. It reaches only "
+            "what the attacker box reaches.",
+        ),
+    ] = False,
+    proxy_port: Annotated[
+        int, typer.Option(help="Port of the SOCKS5 proxy on 127.0.0.1.")
+    ] = exposure.DEFAULT_PROXY_PORT,
+    expose: Annotated[
+        list[str] | None,
+        typer.Option(
+            metavar="HOST:PORT[:LOCAL_PORT]",
+            help="Publish a service on 127.0.0.1 (only), through the attacker box. Repeatable.",
+        ),
+    ] = None,
 ) -> None:
     """Start a range from its range.yaml. No LLM needed."""
+    try:
+        forwards = tuple(exposure.parse_expose(item) for item in expose or [])
+    except exposure.ExposureError as exc:
+        _fail(exc)
+    options = exposure.Exposure(proxy_port if proxy else None, forwards)
     try:
         runtime.up(
             _range_path(target),
             report=_report,
             confirm=_confirm_privileged,
             allow_privileged=allow_privileged,
+            exposure=options,
         )
     except (runtime.RangeError, runtime.DockerError) as exc:
         _fail(exc)

@@ -9,12 +9,16 @@
 4. targets have no internet: DNS, TCP over IPv4 and IPv6, HTTP and a default route all fail;
 5. the host cannot reach the targets: no published port, no connection to their IPs;
 6. the attacker box does not forward packets; its internet access is only a warning;
-7. every flag is in place, with the value recorded at `up`.
+7. every flag is in place, with the value recorded at `up`;
+8. with `--proxy` or `--expose`: the relay publishes on 127.0.0.1 only (not on ::1 or the
+   host's own addresses), the proxy reaches the services the attacker box reaches and, without
+   internet, nothing else, every forward answers, and no target can use the proxy or the relay.
 
 Checks are batched (one script per network namespace) and run in parallel across hosts.
 """
 
 import json
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -22,16 +26,18 @@ from pathlib import Path
 from typing import Any, Literal
 
 from sosya import attacker as attacker_image
+from sosya import exposure as exposure_model
 from sosya import topology
 from sosya.catalog.loader import load_index, load_services
 from sosya.catalog.models import CatalogIndex, Port
+from sosya.exposure import Exposure
 from sosya.render import project_name
 from sosya.runtime import RangeError, Workspace
 from sosya.runtime import state as state_store
 from sosya.runtime.docker import ContainerInfo, Docker
 from sosya.scenario import flags as flag_store
 from sosya.spec import RangeSpec, SpecError, load_range
-from sosya.validate import probes
+from sosya.validate import probes, socks
 from sosya.validate.probes import Probe
 
 READY_TIMEOUT = 90
@@ -249,8 +255,10 @@ NO_INTERNET = (
 )
 
 
-def _namespace_probes(container: topology.Container) -> list[_Planned]:
-    return [
+def _namespace_probes(
+    container: topology.Container, relay_targets: list[tuple[str, str, int]] = ()
+) -> list[_Planned]:
+    planned = [
         _Planned(
             Probe(f"n{i}", "block", command),
             "no internet",
@@ -259,6 +267,30 @@ def _namespace_probes(container: topology.Container) -> list[_Planned]:
         )
         for i, (name, command) in enumerate(NO_INTERNET)
     ]
+    # The proxy and the relay must be unusable from a target: nothing answers on them.
+    for i, (what, address, port) in enumerate(relay_targets):
+        planned.append(
+            _Planned(
+                Probe(f"n{len(NO_INTERNET) + i}", "block", probes.tcp(address, port)),
+                "exposure",
+                f"{container.key} → {what} {address}:{port}",
+                container.host,
+            )
+        )
+    return planned
+
+
+def _relay_targets(lab: "_Range", exposure: Exposure) -> list[tuple[str, str, int]]:
+    """Every address of the attacker box and the relay, with every relay port."""
+    if exposure.empty:
+        return []
+    addresses: list[tuple[str, str]] = [
+        ("relay", exposure_model.RELAY),
+        ("attacker", exposure_model.LINK_ALIAS),
+    ]
+    for key, what in ((topology.ATTACKER, "attacker"), (exposure_model.RELAY, "relay")):
+        addresses += [(what, ip) for ip in sorted(lab.ips(key).values())]
+    return [(what, address, port) for what, address in addresses for port in exposure.local_ports]
 
 
 def _results(planned: list[_Planned], results: dict[str, bool]) -> list[Check]:
@@ -269,6 +301,8 @@ def _results(planned: list[_Planned], results: dict[str, bool]) -> list[Check]:
             detail = "blocked" if ok else "reachable from the attacker box"
         elif item.group == "no internet":
             detail = "blocked" if ok else "the target reaches the internet"
+        elif item.group == "exposure":
+            detail = "blocked" if ok else "the target can use the relay"
         elif item.group == "reach":
             detail = "reachable" if ok else f"no answer within {READY_TIMEOUT}s"
             if not ok and item.level == "warning":
@@ -326,12 +360,94 @@ def _flag_checks(lab: _Range, record: state_store.RangeState) -> list[Check]:
     return checks
 
 
+def _until(deadline: float, attempt: Callable[[], bool]) -> bool:
+    while True:
+        if attempt():
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(1)
+
+
+def _exposure_checks(lab: _Range, exposure: Exposure, ready_timeout: int) -> list[Check]:
+    """What `--proxy` and `--expose` publish: on 127.0.0.1 only, and working."""
+    checks: list[Check] = []
+
+    def add(target: str, ok: bool, good: str, bad: str, level: Level = "check") -> None:
+        checks.append(Check("exposure", target, ok, good if ok else bad, level))
+
+    for key in (exposure_model.FORWARDER, exposure_model.RELAY):
+        info = lab.info(key)
+        ok = info is not None and info.state == "running" and info.health in (None, "healthy")
+        state = "not created" if info is None else f"{info.state}, {info.health or 'no health'}"
+        add(key, ok, "running, healthy", state)
+
+    expected = {
+        (f"{port}/tcp", exposure_model.LOCALHOST, str(port)) for port in exposure.local_ports
+    }
+    for key, info in sorted(lab.found.items()):
+        bound = set(probes.bindings(lab.data.get(info.id, {})))
+        if key == exposure_model.RELAY:
+            wrong = sorted(b for b in bound if b[1] != exposure_model.LOCALHOST)
+            ok = bound == expected and not wrong
+            shown = ", ".join(f"{ip or '*'}:{host_port}" for _, ip, host_port in sorted(bound))
+            add(
+                "relay ports", ok, f"127.0.0.1 only ({shown})", f"published on {shown or 'nothing'}"
+            )
+        elif key in (topology.ATTACKER, exposure_model.FORWARDER) and bound:
+            add(f"{key} ports", False, "", "published: " + ", ".join(b[0] for b in sorted(bound)))
+
+    deadline = time.monotonic() + ready_timeout
+    others = probes.host_addresses()
+    for port in exposure.local_ports:
+        ok = _until(deadline, lambda port=port: probes.host_connects("127.0.0.1", port))
+        add(f"127.0.0.1:{port}", ok, "answers", "no answer")
+        for address in ["::1", *others]:
+            reached = probes.host_connects(address, port)
+            shown = f"[{address}]" if ":" in address else address
+            add(f"{shown}:{port}", not reached, "refused", "answers: published beyond 127.0.0.1")
+
+    if exposure.proxy_port is not None:
+        proxy = ("127.0.0.1", exposure.proxy_port)
+        box = lab.attacker()
+        for container in lab.targets():
+            info = lab.info(container.key)
+            if info is None or info.state != "running":
+                continue
+            if not set(container.segments) & set(box.segments):
+                continue
+            for port_info in _tcp_port_info(lab.index, lab.spec, container):
+                ok = _until(
+                    deadline,
+                    lambda c=container, p=port_info.port: socks.connect(proxy, c.key, p),
+                )
+                level: Level = "warning" if port_info.optional else "check"
+                add(
+                    f"proxy → {container.key}:{port_info.port}", ok, "reachable", "no answer", level
+                )
+        if not lab.spec.attacker.internet:
+            for host, port in (("1.1.1.1", 443), ("example.com", 443)):
+                reached = socks.connect(proxy, host, port)
+                add(
+                    f"proxy → {host}:{port}",
+                    not reached,
+                    "blocked",
+                    "the proxy reaches the internet",
+                )
+
+    for forward in exposure.forwards:
+        ok = _until(deadline, lambda f=forward: probes.forward_answers(f.local))
+        add(f"127.0.0.1:{forward.local} → {forward.label}", ok, "forwarded", "no answer")
+    return checks
+
+
 GROUP_ORDER = (
     "service",
     "reach",
     "segmentation",
     "no internet",
     "host isolation",
+    "exposure",
     "attacker",
     "flag",
 )
@@ -360,6 +476,8 @@ def validate(
     if not lab.found:
         raise RangeError(f"range {name} is not running: start it with `sosya up {name}`")
     image = attacker_image.image()
+    exposure = Exposure.from_state(record.proxy_port, record.exposes)
+    relay_targets = _relay_targets(lab, exposure)
 
     box = lab.info(topology.ATTACKER)
     attacker_planned = _attacker_probes(lab) if box and box.state == "running" else []
@@ -382,13 +500,18 @@ def validate(
                 docker,
                 lab.info(c.key).id,
                 image,  # type: ignore[union-attr]
-                [p.probe for p in _namespace_probes(c)],
+                [p.probe for p in _namespace_probes(c, relay_targets)],
                 ready_timeout,
             )
             for c in namespaces
         }
         host_futures = [pool.submit(_host_checks, lab, c) for c in lab.targets()]
         flag_future = pool.submit(_flag_checks, lab, record)
+        exposure_future = (
+            pool.submit(_exposure_checks, lab, exposure, ready_timeout)
+            if not exposure.empty
+            else None
+        )
 
         checks = _service_checks(lab)
         if box is None or box.state != "running":
@@ -396,11 +519,14 @@ def validate(
         checks += _results(attacker_planned, attacker_future.result())
         for container in namespaces:
             checks += _results(
-                _namespace_probes(container), namespace_futures[container.key].result()
+                _namespace_probes(container, relay_targets),
+                namespace_futures[container.key].result(),
             )
         for future in host_futures:
             checks += future.result()
         checks += flag_future.result()
+        if exposure_future is not None:
+            checks += exposure_future.result()
     order = {group: i for i, group in enumerate(GROUP_ORDER)}
     return sorted(checks, key=lambda c: (order.get(c.group, 99), c.target))
 
