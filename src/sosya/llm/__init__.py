@@ -24,8 +24,10 @@ from sosya.llm.base import (
 )
 from sosya.llm.openai import OpenAICompatibleLLM
 
-DEFAULT_EFFORT: str | None = None
-"""Chosen from the Gate 2 latency measurements."""
+DEFAULT_EFFORT: str | None = "medium"
+"""Chosen from the Gate 2 measurements (2026-11-21): low, medium and high all gave 10/10 valid
+plans; medium matched low's latency (about 5.4 s median, 6.3 s p90 for queries and plan) and
+high had a worse tail (7.7 s p90)."""
 
 
 def select(
