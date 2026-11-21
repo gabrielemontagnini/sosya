@@ -229,3 +229,39 @@ def test_script_shape() -> None:
 
 def test_index_is_the_real_one() -> None:
     assert load_index().get("vulhub/struts2/s2-045") is not None
+
+
+def _with_optional_web_port(port: int) -> Any:
+    index = load_index()
+    entry = index.get("vulhub/struts2/s2-045")
+    assert entry is not None
+    services = [
+        s.model_copy(
+            update={
+                "ports": [
+                    p.model_copy(update={"optional": True, "reason": "never listens"})
+                    if p.port == port
+                    else p
+                    for p in s.ports
+                ]
+            }
+        )
+        for s in entry.services
+    ]
+    changed = entry.model_copy(update={"services": services})
+    entries = [changed if e.id == entry.id else e for e in index.entries]
+    return index.model_copy(update={"entries": entries})
+
+
+def test_a_closed_optional_port_is_only_a_warning(lab: Lab) -> None:
+    lab.failing = {"/dev/tcp/web/8080", "/dev/tcp/10.0.1.2/8080"}
+    checks = lab.run(index=_with_optional_web_port(8080))
+    assert failures(checks) == []
+    warned = [c for c in checks if not c.ok]
+    assert {c.target for c in warned} == {"web:8080", "web 10.0.1.2:8080"}
+    assert all(c.level == "warning" and "optional port: never listens" in c.detail for c in warned)
+
+
+def test_an_open_optional_port_passes_quietly(lab: Lab) -> None:
+    checks = lab.run(index=_with_optional_web_port(8080))
+    assert all(c.ok for c in checks if c.target.startswith("web") and c.group == "reach")

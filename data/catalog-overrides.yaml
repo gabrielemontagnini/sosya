@@ -1,0 +1,10 @@
+# Corrections to upstream Vulhub environments, applied by `python -m sosya.catalog.build index`.
+# Data only: every entry names an existing environment, service and port, and gives a reason.
+# The build fails on an entry that points to anything that does not exist.
+
+ports:
+  - id: vulhub/jenkins/CVE-2017-1000353
+    service: jenkins
+    port: 50000
+    optional: true
+    reason: published by the compose file, but the Jenkins agent port never listens

@@ -24,7 +24,7 @@ from typing import Any, Literal
 from sosya import attacker as attacker_image
 from sosya import topology
 from sosya.catalog.loader import load_index, load_services
-from sosya.catalog.models import CatalogIndex
+from sosya.catalog.models import CatalogIndex, Port
 from sosya.render import project_name
 from sosya.runtime import RangeError, Workspace
 from sosya.runtime import state as state_store
@@ -63,17 +63,26 @@ class _Planned:
     target: str
     host: str
     level: Level = "check"
+    note: str = ""
 
 
-def _tcp_ports(index: CatalogIndex, spec: RangeSpec, container: topology.Container) -> list[int]:
+def _tcp_port_info(
+    index: CatalogIndex, spec: RangeSpec, container: topology.Container
+) -> list[Port]:
+    """The catalog's TCP ports of a container, sorted; optional ports included."""
     host = next((h for h in spec.hosts if h.name == container.host), None)
     entry = index.get(host.component) if host else None
     if entry is None:
         return []
     for service in entry.services:
         if service.name == container.original:
-            return sorted({p.port for p in service.ports if p.protocol == "tcp"})
+            found = {p.port: p for p in service.ports if p.protocol == "tcp"}
+            return [found[port] for port in sorted(found)]
     return []
+
+
+def _tcp_ports(index: CatalogIndex, spec: RangeSpec, container: topology.Container) -> list[int]:
+    return [p.port for p in _tcp_port_info(index, spec, container)]
 
 
 class _Range:
@@ -139,28 +148,41 @@ def _attacker_probes(lab: _Range) -> list[_Planned]:
     counter = 0
 
     def add(
-        kind: probes.Kind, command: str, group: str, target: str, host: str, level: Level = "check"
+        kind: probes.Kind,
+        command: str,
+        group: str,
+        target: str,
+        host: str,
+        level: Level = "check",
+        note: str = "",
     ) -> None:
         nonlocal counter
         counter += 1
-        planned.append(_Planned(Probe(f"a{counter}", kind, command), group, target, host, level))
+        probe = Probe(f"a{counter}", kind, command)
+        planned.append(_Planned(probe, group, target, host, level, note))
 
     for container in lab.targets():
         info = lab.info(container.key)
         if info is None or info.state != "running":
             continue
-        ports = _tcp_ports(lab.index, lab.spec, container)
+        port_info = _tcp_port_info(lab.index, lab.spec, container)
+        ports = [p.port for p in port_info]
         common = shared & set(container.networks)
         if common:
             if not container.segments:
                 continue
-            for port in ports:
+            for info in port_info:
+                port = info.port
+                # An optional port that never listens is an upstream quirk, not a broken range.
+                level: Level = "warning" if info.optional else "check"
                 add(
                     "reach",
                     probes.tcp(container.key, port),
                     "reach",
                     f"{container.key}:{port}",
                     container.host,
+                    level,
+                    info.reason,
                 )
                 for network in sorted(common):
                     ip = lab.ips(container.key).get(network)
@@ -171,6 +193,8 @@ def _attacker_probes(lab: _Range) -> list[_Planned]:
                             "reach",
                             f"{container.key} {ip}:{port}",
                             container.host,
+                            level,
+                            info.reason,
                         )
             if not ports:
                 add(
@@ -247,6 +271,8 @@ def _results(planned: list[_Planned], results: dict[str, bool]) -> list[Check]:
             detail = "blocked" if ok else "the target reaches the internet"
         elif item.group == "reach":
             detail = "reachable" if ok else f"no answer within {READY_TIMEOUT}s"
+            if not ok and item.level == "warning":
+                detail += f" (optional port: {item.note})"
         else:
             detail = "ok" if ok else "failed"
         checks.append(Check(item.group, item.target, ok, detail, item.level, item.host))

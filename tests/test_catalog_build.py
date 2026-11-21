@@ -43,6 +43,8 @@ def checkout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     )
     (root / "cache/unauth/README.md").write_text("# Cache unauth\n\nNo password.\n")
     monkeypatch.setattr(build, "head", lambda path: VULHUB_COMMIT)
+    # The shipped overrides name real Vulhub environments, which this checkout does not have.
+    monkeypatch.setattr(build, "OVERRIDES_PATH", tmp_path / "no-overrides.yaml")
     return root
 
 
@@ -141,3 +143,89 @@ def test_sync_is_a_no_op_at_the_pinned_commit(
     monkeypatch.setattr(source, "head", lambda path: VULHUB_COMMIT)
     monkeypatch.setattr(gitmod.subprocess, "run", lambda *a, **k: pytest.fail("git ran"))
     assert source.sync(tmp_path) == tmp_path
+
+
+def _entries(checkout: Path) -> list:
+    return build.read_environments(checkout)
+
+
+def test_overrides_mark_a_port_optional_with_its_reason(checkout: Path) -> None:
+    overrides = build.Overrides.model_validate(
+        {
+            "ports": [
+                {
+                    "id": "vulhub/cache/unauth",
+                    "service": "redis",
+                    "port": 6379,
+                    "optional": True,
+                    "reason": "never listens",
+                }
+            ]
+        }
+    )
+    entries = build.apply_overrides(_entries(checkout), overrides)
+    cache = next(e for e in entries if e.id == "vulhub/cache/unauth")
+    (port,) = cache.services[0].ports
+    assert port.optional and port.reason == "never listens"
+    web = next(e for e in entries if e.id == "vulhub/web/CVE-2099-0001")
+    assert not web.services[0].ports[0].optional
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        ({"id": "vulhub/nope/none"}, "no such environment"),
+        ({"service": "memcached"}, "no service"),
+        ({"port": 6380}, "no port 6380/tcp"),
+    ],
+)
+def test_overrides_that_match_nothing_fail_the_build(
+    checkout: Path, change: dict, message: str
+) -> None:
+    item = {
+        "id": "vulhub/cache/unauth",
+        "service": "redis",
+        "port": 6379,
+        "optional": True,
+        "reason": "never listens",
+        **change,
+    }
+    overrides = build.Overrides.model_validate({"ports": [item]})
+    with pytest.raises(build.OverrideError, match=message):
+        build.apply_overrides(_entries(checkout), overrides)
+
+
+def test_an_override_needs_a_reason(tmp_path: Path) -> None:
+    path = tmp_path / "overrides.yaml"
+    path.write_text(
+        "ports:\n  - {id: vulhub/cache/unauth, service: redis, port: 6379, optional: true,"
+        " reason: '  '}\n"
+    )
+    with pytest.raises(build.OverrideError):
+        build.load_overrides(path)
+
+
+def test_the_index_command_fails_on_a_bad_override(checkout: Path, tmp_path: Path) -> None:
+    overrides = tmp_path / "overrides.yaml"
+    overrides.write_text(
+        "ports:\n  - {id: vulhub/nope, service: x, port: 1, optional: true, reason: r}\n"
+    )
+    output = tmp_path / "index.json"
+    argv = ["--checkout", str(checkout), "--cache", str(tmp_path / "none.json")]
+    argv += ["--overrides", str(overrides), "index", "--output", str(output)]
+    assert build.main([*argv, "--allow-missing-platforms"]) == 2
+    assert not output.exists()
+
+
+def test_the_shipped_overrides_are_in_the_shipped_index() -> None:
+    from sosya.catalog.loader import load_index
+
+    overrides = build.load_overrides(Path(__file__).parent.parent / build.OVERRIDES_PATH)
+    assert overrides.ports, "the jenkins agent port override is missing"
+    index = load_index()
+    for item in overrides.ports:
+        entry = index.get(item.id)
+        assert entry is not None
+        service = next(s for s in entry.services if s.name == item.service)
+        port = next(p for p in service.ports if p.port == item.port)
+        assert port.optional == item.optional and port.reason == item.reason

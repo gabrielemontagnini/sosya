@@ -12,9 +12,10 @@ import json
 import sys
 import tomllib
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any, Literal
 
 import yaml
+from pydantic import BaseModel, ConfigDict, StringConstraints, ValidationError
 from rich.console import Console
 
 from sosya.catalog import VULHUB_COMMIT
@@ -33,6 +34,7 @@ DATA_DIR = Path("src/sosya/catalog/data")
 INDEX_PATH = DATA_DIR / "index.json"
 COMPOSE_PATH = DATA_DIR / "compose.json"
 LICENSE_PATH = DATA_DIR / "VULHUB-LICENSE"
+OVERRIDES_PATH = Path("data/catalog-overrides.yaml")
 OK = "[green]ok[/]"
 FAIL = "[red]fail[/]"
 WARN = "[yellow]warn[/]"
@@ -82,8 +84,72 @@ def referenced_images(entries: list[Entry]) -> list[str]:
     return sorted(image for image in images if image)
 
 
-def build_index(entries: list[Entry], cache: dict[str, CacheEntry]) -> CatalogIndex:
+class OverrideError(ValueError):
+    """An override that points to an environment, a service or a port that does not exist."""
+
+
+class PortOverride(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    service: str
+    port: int
+    protocol: Literal["tcp", "udp"] = "tcp"
+    optional: bool
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class Overrides(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    ports: list[PortOverride] = []
+
+
+def load_overrides(path: Path) -> Overrides:
+    if not path.is_file():
+        return Overrides()
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    try:
+        return Overrides.model_validate(data)
+    except ValidationError as exc:
+        raise OverrideError(f"{path}: {exc}") from None
+
+
+def apply_overrides(entries: list[Entry], overrides: Overrides) -> list[Entry]:
+    """Apply every override to the parsed entries. Raise on one that matches nothing."""
+    by_id = {entry.id: entry for entry in entries}
+    changed: dict[str, Entry] = {}
+    for item in overrides.ports:
+        entry = changed.get(item.id) or by_id.get(item.id)
+        if entry is None:
+            raise OverrideError(f"override {item.id}: no such environment")
+        service = next((s for s in entry.services if s.name == item.service), None)
+        if service is None:
+            raise OverrideError(f"override {item.id}: no service {item.service!r}")
+        if not any(p.port == item.port and p.protocol == item.protocol for p in service.ports):
+            raise OverrideError(
+                f"override {item.id}: service {item.service} has no port "
+                f"{item.port}/{item.protocol}"
+            )
+        ports = [
+            p.model_copy(update={"optional": item.optional, "reason": item.reason})
+            if p.port == item.port and p.protocol == item.protocol
+            else p
+            for p in service.ports
+        ]
+        services = [
+            s.model_copy(update={"ports": ports}) if s.name == item.service else s
+            for s in entry.services
+        ]
+        changed[item.id] = entry.model_copy(update={"services": services})
+    return [changed.get(entry.id, entry) for entry in entries]
+
+
+def build_index(
+    entries: list[Entry], cache: dict[str, CacheEntry], overrides: Overrides | None = None
+) -> CatalogIndex:
     lookup = cached_platforms(cache)
+    entries = apply_overrides(entries, overrides or Overrides())
     return CatalogIndex(
         vulhub_commit=VULHUB_COMMIT,
         entries=[with_platforms(entry, lookup) for entry in entries],
@@ -143,7 +209,11 @@ def cmd_index(args: argparse.Namespace) -> int:
         for image in missing:
             console.print(f"  {image}")
         return 2
-    index = build_index(entries, cache)
+    try:
+        index = build_index(entries, cache, load_overrides(args.overrides))
+    except OverrideError as exc:
+        console.print(f"{FAIL} {exc}")
+        return 2
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(dump_index(index), encoding="utf-8")
     console.print(f"{OK} {len(index.entries)} environments written to {args.output}")
@@ -171,6 +241,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m sosya.catalog.build", description=__doc__)
     parser.add_argument("--checkout", type=Path, default=DEFAULT_CHECKOUT)
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
+    parser.add_argument("--overrides", type=Path, default=OVERRIDES_PATH)
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("sync", help="sparse clone of Vulhub at the pinned commit")
     platforms = commands.add_parser("platforms", help="detect image platforms (resumable)")

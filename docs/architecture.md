@@ -234,6 +234,19 @@ Results at the pinned commit (347 distinct images: 346 from the web API, 1 from 
 
 The three environments in the last two rows do not start on an amd64 host as they are.
 
+### Catalog overrides
+
+Some upstream environments have quirks that the compose file does not show. They are corrected
+in `data/catalog-overrides.yaml`, a data-only file that `python -m sosya.catalog.build index`
+applies to the index. Every entry names the environment, service and port it changes and gives
+its reason; the build fails on an entry that points to an environment, a service or a port that
+does not exist, so a new Vulhub pin cannot leave a stale override behind.
+
+First entry: port 50000 of `jenkins/CVE-2017-1000353` (the Jenkins agent port) is published by
+the compose file but never listens. At Gate 2 it cost a repair attempt. It is now **optional**:
+in `sosya validate`, an optional port that does not answer is a warning, not a failure, so it
+never goes back to the LLM. `sosya catalog` shows optional ports with a `?`.
+
 ## Where `sosya up` finds a range
 
 `sosya up <target>` looks, in this order, for:
@@ -321,7 +334,7 @@ isolation checks as CI.
 | Group | Check | Pass when |
 | --- | --- | --- |
 | service | every container | running (healthy, with a healthcheck), or exited 0 (one-shot) |
-| reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s |
+| reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s; an optional port only warns |
 | segmentation | attacker → containers on no shared network, by name and by IP | unresolved or refused |
 | no internet | every target namespace: DNS, TCP v4 and v6, HTTP, default route | all fail |
 | host isolation | published ports; host → every target IP and port | none; refused |

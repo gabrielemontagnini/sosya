@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 SCHEMA_VERSION = 1
 
@@ -16,6 +16,11 @@ class Port(_Model):
 
     port: int
     protocol: Literal["tcp", "udp"] = "tcp"
+    # Left out of the index when unset, so only overridden ports carry them.
+    optional: bool = Field(default=False, exclude_if=lambda value: not value)
+    """The service may never listen on it: a closed optional port is a warning, not a failure."""
+    reason: str = Field(default="", exclude_if=lambda value: not value)
+    """Why the port is optional, from `data/catalog-overrides.yaml`."""
 
 
 class LocalFile(_Model):

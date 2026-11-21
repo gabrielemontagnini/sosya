@@ -26,11 +26,11 @@ def host_platform() -> str | None:
 def _ports(entry: Entry) -> str:
     ports = sorted(
         {
-            f"{p.port}/udp" if p.protocol == "udp" else str(p.port)
+            (f"{p.port}/udp" if p.protocol == "udp" else str(p.port)) + ("?" if p.optional else "")
             for s in entry.services
             for p in s.ports
         },
-        key=lambda text: int(text.split("/")[0]),
+        key=lambda text: int(text.split("/")[0].rstrip("?")),
     )
     if len(ports) > MAX_PORTS:
         return ", ".join(ports[:MAX_PORTS]) + f" +{len(ports) - MAX_PORTS}"

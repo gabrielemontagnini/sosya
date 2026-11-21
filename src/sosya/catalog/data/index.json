@@ -6668,8 +6668,10 @@
        "protocol": "tcp"
       },
       {
+       "optional": true,
        "port": 50000,
-       "protocol": "tcp"
+       "protocol": "tcp",
+       "reason": "published by the compose file, but the Jenkins agent port never listens"
       }
      ]
     }
