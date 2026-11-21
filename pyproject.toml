@@ -56,7 +56,7 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not docker'"
 markers = [
     "docker: needs a running Docker daemon",
 ]
