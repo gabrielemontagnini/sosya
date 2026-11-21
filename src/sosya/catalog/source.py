@@ -5,37 +5,19 @@ The clone is blobless, shallow and sparse: it holds `environments.toml`, Vulhub'
 environment, only its compose file, English README and Dockerfiles.
 """
 
-import subprocess
 import tomllib
 from pathlib import Path
 
 from sosya.catalog import VULHUB_COMMIT, VULHUB_URL
+from sosya.catalog.git import GitError, git, head
 
 DEFAULT_CHECKOUT = Path(".cache/vulhub")
 ENV_FILES = ("docker-compose.yml", "README.md", "Dockerfile*")
 TOP_FILES = ("environments.toml", "LICENSE")
 
 
-class SourceError(RuntimeError):
-    pass
-
-
-def _git(checkout: Path, *args: str) -> str:
-    proc = subprocess.run(
-        ["git", "-C", str(checkout), *args], capture_output=True, text=True, check=False
-    )
-    if proc.returncode != 0:
-        raise SourceError(f"git {' '.join(args)} failed: {proc.stderr.strip()}")
-    return proc.stdout.strip()
-
-
-def head(checkout: Path) -> str | None:
-    if not (checkout / ".git").is_dir():
-        return None
-    try:
-        return _git(checkout, "rev-parse", "HEAD")
-    except SourceError:
-        return None
+SourceError = GitError
+_git = git
 
 
 def sparse_patterns(paths: list[str]) -> list[str]:

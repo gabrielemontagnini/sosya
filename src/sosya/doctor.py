@@ -8,6 +8,8 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 
+from sosya import engine
+
 MIN_PYTHON = (3, 12)
 LLM_ENV_VARS = ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENAI_BASE_URL")
 
@@ -68,7 +70,11 @@ def check_docker_daemon() -> CheckResult:
             Status.FAIL,
             f"not reachable ({_last_line(proc.stderr)}): is Docker running for your user?",
         )
-    return CheckResult("Docker daemon", Status.OK, f"server {proc.stdout.strip()}")
+    version = proc.stdout.strip()
+    problem = engine.version_problem(version)
+    if problem is not None:
+        return CheckResult("Docker daemon", Status.FAIL, problem)
+    return CheckResult("Docker daemon", Status.OK, f"server {version}")
 
 
 def check_compose() -> CheckResult:
@@ -85,16 +91,33 @@ def check_compose() -> CheckResult:
 
 
 def check_architecture() -> CheckResult:
-    machine = platform.machine().lower()
-    if machine in {"x86_64", "amd64"}:
-        return CheckResult("CPU architecture", Status.OK, machine)
-    if machine in {"arm64", "aarch64"}:
+    """The engine's architecture, from the daemon; Python's guess only when it does not answer."""
+    detected = engine.docker_platform()
+    source = "Docker Engine"
+    if detected is None:
+        detected = engine.normalize_platform("linux", platform.machine()) or platform.machine()
+        source = "this machine, Docker not reachable"
+    if detected == "linux/amd64":
+        return CheckResult("CPU architecture", Status.OK, f"{detected} ({source})")
+    if detected == "linux/arm64":
         return CheckResult(
             "CPU architecture",
             Status.WARN,
-            f"{machine}: Vulhub images may be amd64-only and run slowly or break under emulation",
+            f"{detected} ({source}): most Vulhub images are amd64 only and run slowly or break "
+            "under emulation",
         )
-    return CheckResult("CPU architecture", Status.WARN, f"{machine}: untested architecture")
+    return CheckResult("CPU architecture", Status.WARN, f"{detected} ({source}): untested")
+
+
+def check_git() -> CheckResult:
+    path = shutil.which("git")
+    if path is None:
+        return CheckResult(
+            "git",
+            Status.WARN,
+            "not found: needed to download the files of environments that are not image-only",
+        )
+    return CheckResult("git", Status.OK, path)
 
 
 def check_llm() -> CheckResult:
@@ -117,5 +140,6 @@ def run_checks() -> list[CheckResult]:
         check_docker_daemon(),
         check_compose(),
         check_architecture(),
+        check_git(),
         check_llm(),
     ]

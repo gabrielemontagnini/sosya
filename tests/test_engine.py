@@ -40,3 +40,23 @@ def test_catalog_display_prefers_the_daemon(monkeypatch: pytest.MonkeyPatch) -> 
     assert display.host_platform() == "linux/amd64"  # daemon unreachable: Python's guess
     monkeypatch.setattr(engine, "run", answer("linux/aarch64\n"))
     assert display.host_platform() == "linux/arm64"
+
+
+@pytest.mark.parametrize(
+    ("stdout", "code", "fragment"),
+    [
+        ("29.10.0\n", 0, None),
+        ("28.0.0\n", 0, None),
+        ("27.5.1\n", 0, "too old"),
+        ("", 1, "not reachable"),
+    ],
+)
+def test_engine_problem(
+    monkeypatch: pytest.MonkeyPatch, stdout: str, code: int, fragment: str | None
+) -> None:
+    monkeypatch.setattr(engine, "run", answer(stdout, code))
+    problem = engine.engine_problem()
+    if fragment is None:
+        assert problem is None
+    else:
+        assert problem is not None and fragment in problem

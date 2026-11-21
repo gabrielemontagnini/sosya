@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from sosya.catalog import VULHUB_COMMIT, build, source
+from sosya.catalog import git as gitmod
 from sosya.catalog.models import CatalogIndex
 from sosya.catalog.platforms import CacheEntry, save_cache
 
@@ -114,7 +115,7 @@ def test_sync_fetches_one_blobless_commit(tmp_path: Path, monkeypatch: pytest.Mo
         stdout = VULHUB_COMMIT if cmd[3] == "rev-parse" else ""
         return subprocess.CompletedProcess(cmd, 0, stdout, "")
 
-    monkeypatch.setattr(source.subprocess, "run", run)
+    monkeypatch.setattr(gitmod.subprocess, "run", run)
     monkeypatch.setattr(source, "head", lambda path: None)
     with pytest.raises(source.SourceError):
         source.sync(checkout)  # head() still says "not at the commit"
@@ -138,5 +139,5 @@ def test_sync_is_a_no_op_at_the_pinned_commit(
     (tmp_path / "environments.toml").write_text(TOML)
     (tmp_path / "LICENSE").write_text("MIT License\n")
     monkeypatch.setattr(source, "head", lambda path: VULHUB_COMMIT)
-    monkeypatch.setattr(source.subprocess, "run", lambda *a, **k: pytest.fail("git ran"))
+    monkeypatch.setattr(gitmod.subprocess, "run", lambda *a, **k: pytest.fail("git ran"))
     assert source.sync(tmp_path) == tmp_path

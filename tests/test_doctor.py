@@ -52,9 +52,42 @@ def test_daemon_timeout_fails(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(("machine", "expected"), [("x86_64", Status.OK), ("arm64", Status.WARN)])
-def test_architecture(monkeypatch: pytest.MonkeyPatch, machine: str, expected: Status) -> None:
+def test_architecture_falls_back_to_the_machine(
+    monkeypatch: pytest.MonkeyPatch, machine: str, expected: Status
+) -> None:
     monkeypatch.setattr(doctor.platform, "machine", lambda: machine)
-    assert doctor.check_architecture().status is expected
+    result = doctor.check_architecture()
+    assert result.status is expected
+    assert "Docker not reachable" in result.detail
+
+
+def test_architecture_comes_from_the_engine(monkeypatch: pytest.MonkeyPatch) -> None:
+    # An x86_64 Python (under Rosetta, or with a remote context) talking to an arm64 engine.
+    monkeypatch.setattr(doctor.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(doctor.engine, "docker_platform", lambda: "linux/arm64")
+    result = doctor.check_architecture()
+    assert result.status is Status.WARN
+    assert result.detail.startswith("linux/arm64 (Docker Engine)")
+
+
+@pytest.mark.usefixtures("docker_on_path")
+@pytest.mark.parametrize(
+    ("version", "expected"),
+    [("29.10.0", Status.OK), ("28.0.0", Status.OK), ("27.5.1", Status.FAIL)],
+)
+def test_engine_older_than_28_fails(
+    monkeypatch: pytest.MonkeyPatch, version: str, expected: Status
+) -> None:
+    monkeypatch.setattr(doctor.subprocess, "run", _fake_run(stdout=f"{version}\n"))
+    result = doctor.check_docker_daemon()
+    assert result.status is expected
+    if expected is Status.FAIL:
+        assert "28.0.0 or newer" in result.detail
+
+
+def test_missing_git_is_a_warning(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(doctor.shutil, "which", lambda name: None)
+    assert doctor.check_git().status is Status.WARN
 
 
 def test_llm_key_values_are_never_shown(monkeypatch: pytest.MonkeyPatch) -> None:
