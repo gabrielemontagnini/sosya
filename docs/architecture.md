@@ -234,6 +234,20 @@ Results at the pinned commit (347 distinct images: 346 from the web API, 1 from 
 
 The three environments in the last two rows do not start on an amd64 host as they are.
 
+## Where `sosya up` finds a range
+
+`sosya up <target>` looks, in this order, for:
+
+1. a path to a `range.yaml` or to its directory;
+2. a range name recorded in `.sosya/state.json` whose source still exists;
+3. `ranges/<name>/range.yaml` in the current directory;
+4. the gallery shipped inside the package, `sosya/gallery/<name>/range.yaml`.
+
+The gallery is part of the wheel, so `uv tool install sosya && sosya up dmz-redis` works from
+any directory with no repository and no LLM key. CI checks that the gallery is in the wheel
+and the sdist, and that every gallery range passes `load_range` and `check_catalog` from the
+installed wheel.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,

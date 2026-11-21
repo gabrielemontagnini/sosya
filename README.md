@@ -30,6 +30,15 @@ From a checkout of this repository, with [uv](https://docs.astral.sh/uv/) instal
 uv run sosya doctor
 ```
 
+Ranges from the gallery ship inside the package, so they start right after installation, with no
+repository and no LLM key:
+
+```console
+$ sosya up dmz-redis       # Struts2 in a DMZ, Redis only on the internal network
+$ sosya shell dmz-redis
+$ sosya down dmz-redis
+```
+
 ## Responsible use
 
 Sosya builds local labs for training and research on systems you own. It does not generate or run

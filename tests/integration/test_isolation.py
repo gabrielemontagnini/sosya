@@ -1,6 +1,6 @@
 """Isolation checks on a real range, ported from the network spike (docs/architecture.md).
 
-The range is `examples/dmz-redis`, rendered and started by the real runtime. Probes from the
+The range is the gallery's `dmz-redis`, rendered and started by the real runtime. Probes from the
 targets run in their network namespace (`docker run --network container:<id>`), so they do not
 depend on the tools inside the target images. Network checks run by DNS name and by IP.
 
@@ -13,16 +13,15 @@ import socket
 import subprocess
 import time
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
 
-from sosya import runtime
+from sosya import gallery, runtime
 from sosya.runtime.docker import Docker
 
 pytestmark = pytest.mark.docker
 
-EXAMPLE = Path(__file__).parents[2] / "examples" / "dmz-redis"
+EXAMPLE = gallery.path("dmz-redis")
 PROJECT = "sosya-dmz-redis"
 PROBE_IMAGE = "alpine:3.20"
 
@@ -58,6 +57,7 @@ def lab(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Range]:
     workspace = runtime.Workspace(tmp_path_factory.mktemp("work") / ".sosya")
     if docker("image", "inspect", PROBE_IMAGE).returncode != 0:
         assert docker("pull", "--quiet", PROBE_IMAGE, timeout=300).returncode == 0
+    assert EXAMPLE is not None
     runtime.up(
         EXAMPLE, report=lambda level, text: None, confirm=lambda lines: False, workspace=workspace
     )

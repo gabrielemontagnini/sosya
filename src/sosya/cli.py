@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from sosya import __version__, runtime
+from sosya import __version__, gallery, runtime
 from sosya.catalog.display import host_platform, results_json, results_table
 from sosya.catalog.loader import load_index
 from sosya.catalog.search import DEFAULT_LIMIT, search
@@ -82,17 +82,26 @@ def _fail(exc: Exception) -> NoReturn:
 
 
 def _range_path(target: str) -> Path:
-    """A path to a range.yaml or its directory; else a name recorded here or under ranges/."""
+    """Find a range, in this order: a path, a name recorded here, ranges/<name>, the gallery."""
     path = Path(target)
     if path.exists():
         return path
     record = runtime.state_store.load(runtime.WORKSPACE).get(target)
     if record is not None and Path(record.source).exists():
         return Path(record.source)
-    for candidate in (Path("ranges") / target, Path("examples") / target):
-        if (candidate / RANGE_FILE).is_file():
-            return candidate
-    _fail(SpecError(f"no range.yaml at {target}, and no range named {target} here"))
+    candidate = Path("ranges") / target
+    if (candidate / RANGE_FILE).is_file():
+        return candidate
+    shipped = gallery.path(target)
+    if shipped is not None:
+        return shipped
+    available = ", ".join(gallery.names())
+    _fail(
+        SpecError(
+            f"no range.yaml at {target}, no range named {target} here or under ranges/, "
+            f"and none in the gallery ({available})"
+        )
+    )
 
 
 def _range_name(target: str) -> str:
