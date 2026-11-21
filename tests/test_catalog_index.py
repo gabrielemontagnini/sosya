@@ -1,11 +1,12 @@
 """Checks on the real index shipped in the package. No network needed."""
 
 import re
+from importlib import resources
 
 import pytest
 
 from sosya.catalog import VULHUB_COMMIT
-from sosya.catalog.loader import load_index
+from sosya.catalog.loader import load_index, load_services
 from sosya.catalog.models import CatalogIndex
 
 # Counted by the parser on the pinned commit and checked by hand against the compose files.
@@ -105,3 +106,21 @@ def test_summaries_carry_no_setup_or_attack_steps(index: CatalogIndex) -> None:
         summary = entry.summary.lower()
         for marker in ("docker compose", "docker-compose", "```", "your-ip", "following command"):
             assert marker not in summary, (entry.id, marker)
+
+
+def test_every_entry_ships_its_service_definitions(index: CatalogIndex) -> None:
+    for entry in index.entries:
+        services = load_services(entry.id)
+        assert list(services) == [service.name for service in entry.services], entry.id
+
+
+def test_service_definitions_are_copies() -> None:
+    first = load_services("vulhub/redis/4-unacc")
+    first["redis"]["image"] = "changed"
+    assert load_services("vulhub/redis/4-unacc")["redis"]["image"] == "vulhub/redis:4.0.14"
+
+
+def test_vulhub_license_ships_with_the_package() -> None:
+    text = resources.files("sosya.catalog").joinpath("data/VULHUB-LICENSE").read_text()
+    assert text.startswith("The MIT License")
+    assert "vulhub.org" in text

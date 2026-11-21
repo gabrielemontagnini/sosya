@@ -31,6 +31,7 @@ def checkout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     (root / "web/CVE-2099-0001").mkdir(parents=True)
     (root / "cache/unauth").mkdir(parents=True)
     (root / "environments.toml").write_text(TOML)
+    (root / "LICENSE").write_text("MIT License\n\nCopyright (c) Vulhub\n")
     (root / "web/CVE-2099-0001/docker-compose.yml").write_text(
         "services:\n  web:\n    build: .\n    ports: ['8080:8080']\n"
     )
@@ -73,6 +74,10 @@ def test_index_is_deterministic_and_round_trips(checkout: Path, tmp_path: Path) 
     first = output.read_text()
     assert build.main(argv) == 0
     assert output.read_text() == first
+    services = json.loads((tmp_path / "compose.json").read_text())
+    assert list(services) == ["vulhub/cache/unauth", "vulhub/web/CVE-2099-0001"]
+    assert services["vulhub/web/CVE-2099-0001"] == {"web": {"build": ".", "ports": ["8080:8080"]}}
+    assert (tmp_path / "VULHUB-LICENSE").read_text().startswith("MIT License")
     index = CatalogIndex.model_validate_json(first)
     assert index.vulhub_commit == VULHUB_COMMIT
     web = index.get("vulhub/web/CVE-2099-0001")
@@ -93,8 +98,8 @@ def test_index_refuses_missing_platforms(checkout: Path, tmp_path: Path) -> None
 
 def test_sparse_patterns_take_only_text_files() -> None:
     patterns = source.sparse_patterns(["b/x", "a/y"])
-    assert patterns[0] == "/environments.toml"
-    assert patterns[1:4] == ["/a/y/docker-compose.yml", "/a/y/README.md", "/a/y/Dockerfile*"]
+    assert patterns[:2] == ["/environments.toml", "/LICENSE"]
+    assert patterns[2:5] == ["/a/y/docker-compose.yml", "/a/y/README.md", "/a/y/Dockerfile*"]
     assert not any(p.endswith((".png", "/")) for p in patterns)
 
 
@@ -131,6 +136,7 @@ def test_sync_is_a_no_op_at_the_pinned_commit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     (tmp_path / "environments.toml").write_text(TOML)
+    (tmp_path / "LICENSE").write_text("MIT License\n")
     monkeypatch.setattr(source, "head", lambda path: VULHUB_COMMIT)
     monkeypatch.setattr(source.subprocess, "run", lambda *a, **k: pytest.fail("git ran"))
     assert source.sync(tmp_path) == tmp_path

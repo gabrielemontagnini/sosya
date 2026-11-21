@@ -49,9 +49,12 @@ jobs:
           version: "0.13.9"
       - name: Build
         run: uv build
-      - name: Check that the catalog index ships in the wheel and the sdist
+      - name: Check that the catalog data and the Vulhub license ship in the wheel and the sdist
         run: |
-          unzip -l dist/*.whl | grep -q ' sosya/catalog/data/index.json$'
-          tar -tzf dist/*.tar.gz | grep -q '/src/sosya/catalog/data/index.json$'
+          for file in index.json compose.json VULHUB-LICENSE; do
+            unzip -l dist/*.whl | grep -q " sosya/catalog/data/$file$"
+            tar -tzf dist/*.tar.gz | grep -q "/src/sosya/catalog/data/$file$"
+          done
+          unzip -l dist/*.whl | grep -q '\.dist-info/licenses/src/sosya/catalog/data/VULHUB-LICENSE$'
       - name: Search the catalog from the installed wheel
         run: uv run --isolated --no-project --with dist/*.whl sosya catalog struts2

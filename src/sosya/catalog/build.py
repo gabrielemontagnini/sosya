@@ -2,7 +2,7 @@
 
     uv run python -m sosya.catalog.build sync        # sparse clone into .cache/vulhub
     uv run python -m sosya.catalog.build platforms   # image platforms, cached and resumable
-    uv run python -m sosya.catalog.build index       # write src/sosya/catalog/data/index.json
+    uv run python -m sosya.catalog.build index       # write the packaged catalog data
 
 Run from the repository root. `sosya` itself never imports this module.
 """
@@ -12,7 +12,9 @@ import json
 import sys
 import tomllib
 from pathlib import Path
+from typing import Any
 
+import yaml
 from rich.console import Console
 
 from sosya.catalog import VULHUB_COMMIT
@@ -27,7 +29,10 @@ from sosya.catalog.platforms import (
 )
 from sosya.catalog.source import DEFAULT_CHECKOUT, head, sync
 
-INDEX_PATH = Path("src/sosya/catalog/data/index.json")
+DATA_DIR = Path("src/sosya/catalog/data")
+INDEX_PATH = DATA_DIR / "index.json"
+COMPOSE_PATH = DATA_DIR / "compose.json"
+LICENSE_PATH = DATA_DIR / "VULHUB-LICENSE"
 OK = "[green]ok[/]"
 FAIL = "[red]fail[/]"
 WARN = "[yellow]warn[/]"
@@ -52,6 +57,24 @@ def read_environments(checkout: Path) -> list[Entry]:
         readme = read_file("README.md") or ""
         entries.append(parse_environment(meta, compose, readme, read_file))
     return sorted(entries, key=lambda entry: entry.id)
+
+
+def read_services(checkout: Path, entries: list[Entry]) -> dict[str, dict[str, Any]]:
+    """The `services:` mapping of every environment, as Vulhub wrote it (anchors resolved).
+
+    The renderer copies only the keys that `sosya.catalog.rules` allows, so nothing is
+    filtered here: the shipped data stays a faithful copy of the pinned commit.
+    """
+    services = {}
+    for entry in entries:
+        compose = yaml.safe_load((checkout / entry.path / "docker-compose.yml").read_text("utf-8"))
+        services[entry.id] = compose["services"]
+    return services
+
+
+def dump_services(services: dict[str, dict[str, Any]]) -> str:
+    # Keys are not sorted: the order of services and of their keys is meaningful.
+    return json.dumps(services, indent=1, ensure_ascii=False) + "\n"
 
 
 def referenced_images(entries: list[Entry]) -> list[str]:
@@ -124,6 +147,16 @@ def cmd_index(args: argparse.Namespace) -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(dump_index(index), encoding="utf-8")
     console.print(f"{OK} {len(index.entries)} environments written to {args.output}")
+    compose_output = args.output.with_name(COMPOSE_PATH.name)
+    compose_output.write_text(dump_services(read_services(args.checkout, entries)), "utf-8")
+    console.print(f"{OK} service definitions written to {compose_output}")
+    license_file = args.checkout / "LICENSE"
+    if not license_file.is_file():
+        console.print(f"{FAIL} {license_file} is missing: run `build sync`")
+        return 2
+    license_output = args.output.with_name(LICENSE_PATH.name)
+    license_output.write_text(license_file.read_text(encoding="utf-8"), encoding="utf-8")
+    console.print(f"{OK} Vulhub license copied to {license_output}")
     console.print(f"  image-only        {sum(e.image_only for e in index.entries)}")
     console.print(f"  need local files  {sum(not e.image_only for e in index.entries)}")
     console.print(f"  multi-service     {sum(len(e.services) >= 2 for e in index.entries)}")

@@ -4,7 +4,7 @@ dynamic = ["version"]
 description = "Describe a hacking lab in plain English. Get it running, isolated and verified."
 readme = "README.md"
 license = "MIT"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "src/sosya/catalog/data/VULHUB-LICENSE"]
 requires-python = ">=3.12"
 keywords = ["cyber-range", "security", "lab", "docker", "llm", "ctf", "vulhub", "training"]
 classifiers = [

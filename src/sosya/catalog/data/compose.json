@@ -1,0 +1,5191 @@
+{
+ "vulhub/1panel/CVE-2024-39907": {
+  "1panel": {
+   "image": "vulhub/1panel:1.10.10",
+   "ports": [
+    "10086:10086"
+   ],
+   "environment": [
+    "TZ=Asia/Shanghai"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2015-5254": {
+  "activemq": {
+   "image": "vulhub/activemq:5.11.1",
+   "ports": [
+    "61616:61616",
+    "8161:8161"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2016-3088": {
+  "activemq": {
+   "image": "vulhub/activemq:5.11.1-with-cron",
+   "ports": [
+    "61616:61616",
+    "8161:8161"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2022-41678": {
+  "activemq": {
+   "image": "vulhub/activemq:5.17.3",
+   "ports": [
+    "61616:61616",
+    "8161:8161",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2023-46604": {
+  "activemq": {
+   "image": "vulhub/activemq:5.17.3",
+   "ports": [
+    "61616:61616",
+    "8161:8161",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2024-32114": {
+  "activemq": {
+   "image": "vulhub/activemq:6.1.1",
+   "ports": [
+    "61616:61616",
+    "8161:8161",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/activemq/CVE-2026-34197": {
+  "activemq": {
+   "image": "vulhub/activemq:6.2.2",
+   "ports": [
+    "61616:61616",
+    "8161:8161",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/adminer/CVE-2021-21311": {
+  "web": {
+   "image": "vulhub/adminer:4.7.8",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/adminer/CVE-2021-43008": {
+  "web": {
+   "image": "vulhub/adminer:4.6.2",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/airflow/CVE-2020-11978": {
+  "postgres": {
+   "image": "postgres:13-alpine",
+   "environment": {
+    "POSTGRES_USER": "airflow",
+    "POSTGRES_PASSWORD": "airflow",
+    "POSTGRES_DB": "airflow"
+   },
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "pg_isready",
+     "-U",
+     "airflow"
+    ],
+    "interval": "5s",
+    "retries": 5
+   }
+  },
+  "redis": {
+   "image": "redis:5-alpine",
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "redis-cli",
+     "ping"
+    ],
+    "interval": "5s",
+    "timeout": "30s",
+    "retries": 50
+   }
+  },
+  "airflow-webserver": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "webserver",
+   "ports": [
+    "8080:8080"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:8080/health"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-scheduler": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "scheduler",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-worker": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "worker",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "celery --app airflow.executors.celery_executor.app inspect ping -d \"celery@$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-init": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+    "_AIRFLOW_DB_UPGRADE": "true"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "initdb"
+  },
+  "flower": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "flower",
+   "ports": [
+    "5555:5555"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:5555/"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  }
+ },
+ "vulhub/airflow/CVE-2020-11981": {
+  "postgres": {
+   "image": "postgres:13-alpine",
+   "environment": {
+    "POSTGRES_USER": "airflow",
+    "POSTGRES_PASSWORD": "airflow",
+    "POSTGRES_DB": "airflow"
+   },
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "pg_isready",
+     "-U",
+     "airflow"
+    ],
+    "interval": "5s",
+    "retries": 5
+   }
+  },
+  "redis": {
+   "image": "redis:5-alpine",
+   "ports": [
+    "6379:6379"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "redis-cli",
+     "ping"
+    ],
+    "interval": "5s",
+    "timeout": "30s",
+    "retries": 50
+   }
+  },
+  "airflow-webserver": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "webserver",
+   "ports": [
+    "8080:8080"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:8080/health"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-scheduler": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "scheduler",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-worker": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "worker",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "celery --app airflow.executors.celery_executor.app inspect ping -d \"celery@$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-init": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default",
+    "_AIRFLOW_DB_UPGRADE": "true"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "initdb"
+  },
+  "flower": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__API__AUTH_BACKEND": "airflow.api.auth.backend.default"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "flower",
+   "ports": [
+    "5555:5555"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:5555/"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  }
+ },
+ "vulhub/airflow/CVE-2020-17526": {
+  "postgres": {
+   "image": "postgres:13-alpine",
+   "environment": {
+    "POSTGRES_USER": "airflow",
+    "POSTGRES_PASSWORD": "airflow",
+    "POSTGRES_DB": "airflow"
+   },
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "pg_isready",
+     "-U",
+     "airflow"
+    ],
+    "interval": "5s",
+    "retries": 5
+   }
+  },
+  "redis": {
+   "image": "redis:5-alpine",
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "redis-cli",
+     "ping"
+    ],
+    "interval": "5s",
+    "timeout": "30s",
+    "retries": 50
+   }
+  },
+  "airflow-webserver": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__WEBSERVER__AUTHENTICATE": "true",
+    "AIRFLOW__WEBSERVER__AUTH_BACKEND": "airflow.contrib.auth.backends.password_auth"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "webserver",
+   "ports": [
+    "8080:8080"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:8080/health"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-scheduler": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__WEBSERVER__AUTHENTICATE": "true",
+    "AIRFLOW__WEBSERVER__AUTH_BACKEND": "airflow.contrib.auth.backends.password_auth"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "scheduler",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "airflow jobs check --job-type SchedulerJob --hostname \"$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-worker": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__WEBSERVER__AUTHENTICATE": "true",
+    "AIRFLOW__WEBSERVER__AUTH_BACKEND": "airflow.contrib.auth.backends.password_auth"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "worker",
+   "healthcheck": {
+    "test": [
+     "CMD-SHELL",
+     "celery --app airflow.executors.celery_executor.app inspect ping -d \"celery@$${HOSTNAME}\""
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  },
+  "airflow-init": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__WEBSERVER__AUTHENTICATE": "true",
+    "AIRFLOW__WEBSERVER__AUTH_BACKEND": "airflow.contrib.auth.backends.password_auth",
+    "_AIRFLOW_DB_UPGRADE": "true"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "entrypoint": "python /opt/airflow/init-user.py",
+   "volumes": [
+    "./init-user.py:/opt/airflow/init-user.py"
+   ]
+  },
+  "flower": {
+   "image": "vulhub/airflow:1.10.10",
+   "environment": {
+    "AIRFLOW__CORE__EXECUTOR": "CeleryExecutor",
+    "AIRFLOW__CORE__SQL_ALCHEMY_CONN": "postgresql+psycopg2://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__RESULT_BACKEND": "db+postgresql://airflow:airflow@postgres/airflow",
+    "AIRFLOW__CELERY__BROKER_URL": "redis://:@redis:6379/0",
+    "AIRFLOW__CORE__FERNET_KEY": "",
+    "AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION": "true",
+    "AIRFLOW__CORE__LOAD_EXAMPLES": "true",
+    "AIRFLOW__WEBSERVER__AUTHENTICATE": "true",
+    "AIRFLOW__WEBSERVER__AUTH_BACKEND": "airflow.contrib.auth.backends.password_auth"
+   },
+   "user": "${AIRFLOW_UID:-50000}:${AIRFLOW_GID:-50000}",
+   "depends_on": {
+    "redis": {
+     "condition": "service_healthy"
+    },
+    "postgres": {
+     "condition": "service_healthy"
+    }
+   },
+   "command": "flower",
+   "ports": [
+    "5555:5555"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "curl",
+     "--fail",
+     "http://localhost:5555/"
+    ],
+    "interval": "10s",
+    "timeout": "10s",
+    "retries": 5
+   }
+  }
+ },
+ "vulhub/aj-report/CNVD-2024-15077": {
+  "web": {
+   "image": "vulhub/aj-report:1.4.0",
+   "depends_on": [
+    "db"
+   ],
+   "environment": [
+    "MYSQL_HOST=db",
+    "MYSQL_PORT=3306",
+    "MYSQL_DB=aj_report",
+    "MYSQL_USERNAME=root",
+    "MYSQL_PASSWORD=root"
+   ],
+   "ports": [
+    "9095:9095",
+    "5005:5005"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=aj_report"
+   ]
+  }
+ },
+ "vulhub/apache-cxf/CVE-2024-28752": {
+  "cxf": {
+   "image": "vulhub/apache-cxf:3.2.14",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/apache-druid/CVE-2021-25646": {
+  "web": {
+   "image": "vulhub/apache-druid:0.20.0",
+   "ports": [
+    "8888:8888"
+   ]
+  }
+ },
+ "vulhub/apereo-cas/4.1-rce": {
+  "web": {
+   "image": "vulhub/apereo-cas:4.1.5",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/apisix/CVE-2020-13945": {
+  "apisix": {
+   "image": "vulhub/apisix:2.11.0",
+   "volumes": [
+    "./config.yml:/usr/local/apisix/conf/config.yaml:ro"
+   ],
+   "depends_on": [
+    "etcd"
+   ],
+   "ports": [
+    "9080:9080",
+    "9091:9091",
+    "9443:9443"
+   ]
+  },
+  "etcd": {
+   "image": "gcr.io/etcd-development/etcd:v3.4.15",
+   "command": [
+    "/usr/local/bin/etcd",
+    "--listen-client-urls=http://0.0.0.0:2379",
+    "--advertise-client-urls=http://0.0.0.0:2379"
+   ],
+   "ports": [
+    "2379:2379/tcp"
+   ]
+  }
+ },
+ "vulhub/apisix/CVE-2021-45232": {
+  "apisix": {
+   "image": "vulhub/apisix:2.9",
+   "volumes": [
+    "./apisix.yml:/usr/local/apisix/conf/config.yaml"
+   ],
+   "depends_on": [
+    "etcd"
+   ],
+   "ports": [
+    "9080:9080",
+    "9091:9091",
+    "9443:9443"
+   ]
+  },
+  "dashboard": {
+   "image": "vulhub/apisix-dashboard:2.9.0",
+   "volumes": [
+    "./dashboard.yml:/usr/local/apisix-dashboard/conf/conf.yaml"
+   ],
+   "depends_on": [
+    "etcd"
+   ],
+   "ports": [
+    "9000:9000"
+   ]
+  },
+  "etcd": {
+   "image": "gcr.io/etcd-development/etcd:v3.4.15",
+   "command": [
+    "/usr/local/bin/etcd",
+    "--listen-client-urls=http://0.0.0.0:2379",
+    "--advertise-client-urls=http://0.0.0.0:2379"
+   ],
+   "ports": [
+    "2379:2379/tcp"
+   ]
+  }
+ },
+ "vulhub/appweb/CVE-2018-8715": {
+  "web": {
+   "image": "vulhub/appweb:7.0.1",
+   "volumes": [
+    "./appweb.conf:/etc/appweb/appweb.conf"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/aria2/rce": {
+  "aria2": {
+   "image": "vulhub/aria2:1.18.8",
+   "ports": [
+    "6800:6800"
+   ]
+  }
+ },
+ "vulhub/bash/CVE-2014-6271": {
+  "web": {
+   "image": "vulhub/bash:4.3.0-with-httpd",
+   "ports": [
+    "8080:80"
+   ],
+   "volumes": [
+    "./safe.cgi:/var/www/html/safe.cgi",
+    "./victim.cgi:/var/www/html/victim.cgi"
+   ]
+  }
+ },
+ "vulhub/budibase/CVE-2026-31816": {
+  "couchdb-service": {
+   "restart": "unless-stopped",
+   "image": "budibase/couchdb:v3.3.3-sqs-v2.1.1",
+   "environment": [
+    "COUCHDB_PASSWORD=password",
+    "COUCHDB_USER=admin",
+    "TARGETBUILD=docker-compose"
+   ]
+  },
+  "redis-service": {
+   "restart": "unless-stopped",
+   "image": "redis:7-alpine",
+   "command": "redis-server --requirepass \"budibase_redis_password\""
+  },
+  "minio-service": {
+   "restart": "unless-stopped",
+   "image": "minio/minio:RELEASE.2025-09-07T16-13-09Z",
+   "environment": {
+    "MINIO_ACCESS_KEY": "budibase_minio",
+    "MINIO_SECRET_KEY": "budibase_minio_secret",
+    "MINIO_BROWSER": "off"
+   },
+   "command": "server /data --console-address \":9001\"",
+   "healthcheck": {
+    "test": "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1",
+    "interval": "30s",
+    "timeout": "20s",
+    "retries": 3
+   }
+  },
+  "worker-service": {
+   "restart": "unless-stopped",
+   "image": "vulhub/budibase:3.31.4-worker",
+   "environment": {
+    "SELF_HOSTED": 1,
+    "PORT": 4003,
+    "CLUSTER_PORT": 10000,
+    "API_ENCRYPTION_KEY": "budibase_api_encryption_key_vuln_test_123456789",
+    "JWT_SECRET": "budibase_jwt_secret_vuln_test_12345678901234567890123",
+    "MINIO_ACCESS_KEY": "budibase_minio",
+    "MINIO_SECRET_KEY": "budibase_minio_secret",
+    "MINIO_URL": "http://minio-service:9000",
+    "APPS_URL": "http://app-service:4002",
+    "COUCH_DB_USERNAME": "admin",
+    "COUCH_DB_PASSWORD": "password",
+    "COUCH_DB_URL": "http://admin:password@couchdb-service:5984",
+    "INTERNAL_API_KEY": "budibase_internal_api_key_vuln_test",
+    "REDIS_URL": "redis-service:6379",
+    "REDIS_PASSWORD": "budibase_redis_password"
+   },
+   "depends_on": [
+    "redis-service",
+    "minio-service"
+   ]
+  },
+  "app-service": {
+   "restart": "unless-stopped",
+   "image": "vulhub/budibase:3.31.4-apps",
+   "environment": {
+    "SELF_HOSTED": 1,
+    "COUCH_DB_URL": "http://admin:password@couchdb-service:5984",
+    "WORKER_URL": "http://worker-service:4003",
+    "MINIO_URL": "http://minio-service:9000",
+    "MINIO_ACCESS_KEY": "budibase_minio",
+    "MINIO_SECRET_KEY": "budibase_minio_secret",
+    "INTERNAL_API_KEY": "budibase_internal_api_key_vuln_test",
+    "BUDIBASE_ENVIRONMENT": "production",
+    "PORT": 4002,
+    "API_ENCRYPTION_KEY": "budibase_api_encryption_key_vuln_test_123456789",
+    "JWT_SECRET": "budibase_jwt_secret_vuln_test_12345678901234567890123",
+    "LOG_LEVEL": "info",
+    "ENABLE_ANALYTICS": "false",
+    "REDIS_URL": "redis-service:6379",
+    "REDIS_PASSWORD": "budibase_redis_password",
+    "BB_ADMIN_USER_EMAIL": "admin@vuln.test",
+    "BB_ADMIN_USER_PASSWORD": "admin123456"
+   },
+   "depends_on": [
+    "worker-service",
+    "redis-service"
+   ]
+  },
+  "proxy-service": {
+   "restart": "unless-stopped",
+   "image": "vulhub/budibase:3.31.4-proxy",
+   "ports": [
+    "10000:10000"
+   ],
+   "environment": [
+    "PROXY_RATE_LIMIT_WEBHOOKS_PER_SECOND=10",
+    "PROXY_RATE_LIMIT_API_PER_SECOND=50",
+    "APPS_UPSTREAM_URL=http://app-service:4002",
+    "WORKER_UPSTREAM_URL=http://worker-service:4003",
+    "MINIO_UPSTREAM_URL=http://minio-service:9000",
+    "COUCHDB_UPSTREAM_URL=http://couchdb-service:5984",
+    "RESOLVER=127.0.0.11"
+   ],
+   "depends_on": [
+    "minio-service",
+    "worker-service",
+    "app-service",
+    "couchdb-service"
+   ]
+  }
+ },
+ "vulhub/cacti/CVE-2022-46169": {
+  "web": {
+   "image": "vulhub/cacti:1.2.22",
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "entrypoint": [
+    "bash",
+    "/entrypoint.sh"
+   ],
+   "volumes": [
+    "./entrypoint.sh:/entrypoint.sh"
+   ],
+   "command": "apache2-foreground"
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cacti"
+   ]
+  }
+ },
+ "vulhub/cacti/CVE-2023-39361": {
+  "web": {
+   "image": "vulhub/cacti:1.2.24",
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "entrypoint": [
+    "bash",
+    "/entrypoint.sh"
+   ],
+   "volumes": [
+    "./entrypoint.sh:/entrypoint.sh"
+   ],
+   "command": "apache2-foreground"
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cacti"
+   ],
+   "command": "--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci",
+   "ports": [
+    "3306:3306"
+   ]
+  }
+ },
+ "vulhub/cacti/CVE-2025-24367": {
+  "web": {
+   "image": "vulhub/cacti:1.2.28",
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "entrypoint": [
+    "bash",
+    "/entrypoint.sh"
+   ],
+   "volumes": [
+    "./entrypoint.sh:/entrypoint.sh"
+   ],
+   "command": "apache2-foreground"
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cacti"
+   ],
+   "command": "--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci",
+   "ports": [
+    "3306:3306"
+   ]
+  }
+ },
+ "vulhub/celery/celery3_redis_unauth": {
+  "redis": {
+   "image": "redis",
+   "ports": [
+    "6379:6379"
+   ]
+  },
+  "celery": {
+   "image": "vulhub/celery:3.1.23",
+   "volumes": [
+    ".:/home/user"
+   ],
+   "command": "celery -A tasks worker -l debug",
+   "links": [
+    "redis"
+   ],
+   "environment": {
+    "CELERY_BROKER_URL": "redis://redis/0"
+   }
+  }
+ },
+ "vulhub/cgi/CVE-2016-5385": {
+  "nginx": {
+   "image": "nginx:1",
+   "volumes": [
+    "./www/index.php:/usr/share/nginx/html/index.php",
+    "./nginx/default.conf:/etc/nginx/conf.d/default.conf"
+   ],
+   "depends_on": [
+    "php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "php": {
+   "image": "vulhub/php:httpoxy",
+   "volumes": [
+    "./www/index.php:/var/www/html/index.php"
+   ]
+  }
+ },
+ "vulhub/chartbrew/CVE-2026-25887": {
+  "web": {
+   "image": "vulhub/chartbrew:4.8.0",
+   "depends_on": {
+    "db": {
+     "condition": "service_healthy"
+    },
+    "redis": {
+     "condition": "service_started"
+    }
+   },
+   "ports": [
+    "4018:4018",
+    "4019:4019"
+   ],
+   "environment": [
+    "CB_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "CB_API_HOST=0.0.0.0",
+    "CB_API_PORT=4019",
+    "CB_DB_HOST=db",
+    "CB_DB_PORT=3306",
+    "CB_DB_NAME=chartbrew",
+    "CB_DB_USERNAME=chartbrew",
+    "CB_DB_PASSWORD=chartbrew",
+    "CB_DB_DIALECT=mysql",
+    "CB_REDIS_HOST=redis",
+    "CB_REDIS_PORT=6379",
+    "VITE_APP_CLIENT_HOST=http://${CB_HOST:-localhost}:4018",
+    "VITE_APP_CLIENT_PORT=4018",
+    "VITE_APP_API_HOST=http://${CB_HOST:-localhost}:4019"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_DATABASE=chartbrew",
+    "MYSQL_USER=chartbrew",
+    "MYSQL_PASSWORD=chartbrew",
+    "MYSQL_RANDOM_ROOT_PASSWORD=true"
+   ],
+   "healthcheck": {
+    "test": [
+     "CMD",
+     "mysqladmin",
+     "ping",
+     "-h",
+     "localhost"
+    ],
+    "interval": "10s",
+    "timeout": "5s",
+    "retries": 5
+   }
+  },
+  "redis": {
+   "image": "redis:7.4-alpine"
+  },
+  "mongodb": {
+   "image": "mongo:7.0"
+  }
+ },
+ "vulhub/cmsms/CVE-2019-9053": {
+  "web": {
+   "image": "vulhub/cmsms:2.2.9.1",
+   "ports": [
+    "80:80"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cmsms"
+   ]
+  }
+ },
+ "vulhub/cmsms/CVE-2021-26120": {
+  "web": {
+   "image": "vulhub/cmsms:2.2.9.1",
+   "ports": [
+    "80:80"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cmsms"
+   ]
+  }
+ },
+ "vulhub/coldfusion/CVE-2010-2861": {
+  "coldfusion": {
+   "image": "vulhub/coldfusion:8.0.1",
+   "ports": [
+    "8500:8500"
+   ]
+  }
+ },
+ "vulhub/coldfusion/CVE-2017-3066": {
+  "coldfusion": {
+   "image": "vulhub/coldfusion:11u3",
+   "ports": [
+    "8500:8500"
+   ]
+  }
+ },
+ "vulhub/coldfusion/CVE-2023-26360": {
+  "coldfusion": {
+   "image": "vulhub/coldfusion:2018.0.15",
+   "ports": [
+    "8500:8500",
+    "5005:5005"
+   ],
+   "environment": [
+    "password=vulhub",
+    "acceptEULA=YES"
+   ]
+  }
+ },
+ "vulhub/coldfusion/CVE-2023-29300": {
+  "coldfusion": {
+   "image": "vulhub/coldfusion:2018.0.15",
+   "ports": [
+    "8500:8500",
+    "5005:5005"
+   ],
+   "environment": [
+    "password=vulhub",
+    "acceptEULA=YES"
+   ]
+  }
+ },
+ "vulhub/comfyui/CVE-2025-67303": {
+  "web": {
+   "image": "vulhub/comfyui:3.37-with-manager",
+   "ports": [
+    "8188:8188"
+   ]
+  }
+ },
+ "vulhub/comfyui/CVE-2026-22777": {
+  "web": {
+   "image": "vulhub/comfyui:3.39.1-with-manager",
+   "ports": [
+    "8188:8188"
+   ]
+  }
+ },
+ "vulhub/confluence/CVE-2019-3396": {
+  "web": {
+   "image": "vulhub/confluence:6.10.2",
+   "ports": [
+    "8090:8090"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "postgres:10.7-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=confluence"
+   ]
+  }
+ },
+ "vulhub/confluence/CVE-2021-26084": {
+  "web": {
+   "image": "vulhub/confluence:7.4.10",
+   "ports": [
+    "8090:8090"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "postgres:12.8-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=confluence"
+   ]
+  }
+ },
+ "vulhub/confluence/CVE-2022-26134": {
+  "web": {
+   "image": "vulhub/confluence:7.13.6",
+   "ports": [
+    "8090:8090"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "postgres:12.8-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=confluence"
+   ]
+  }
+ },
+ "vulhub/confluence/CVE-2023-22515": {
+  "web": {
+   "image": "vulhub/confluence:8.5.1",
+   "ports": [
+    "8090:8090"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "postgres:15.4-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=confluence"
+   ]
+  }
+ },
+ "vulhub/confluence/CVE-2023-22527": {
+  "web": {
+   "image": "vulhub/confluence:8.5.3",
+   "ports": [
+    "8090:8090"
+   ],
+   "depends_on": [
+    "db"
+   ]
+  },
+  "db": {
+   "image": "postgres:15.4-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=confluence"
+   ]
+  }
+ },
+ "vulhub/couchdb/CVE-2017-12635": {
+  "couchdb": {
+   "image": "vulhub/couchdb:2.1.0",
+   "ports": [
+    "5984:5984"
+   ],
+   "environment": {
+    "COUCHDB_USER": "admin",
+    "COUCHDB_PASSWORD": "password"
+   }
+  },
+  "initd": {
+   "image": "buildpack-deps:focal-curl",
+   "command": "bash /init.sh",
+   "environment": {
+    "COUCHDB_URL": "couchdb:5984",
+    "COUCHDB_AUTH": "admin:password"
+   },
+   "volumes": [
+    "./init.sh:/init.sh"
+   ],
+   "depends_on": [
+    "couchdb"
+   ]
+  }
+ },
+ "vulhub/couchdb/CVE-2017-12636": {
+  "couchdb": {
+   "image": "vulhub/couchdb:1.6.0",
+   "ports": [
+    "5984:5984"
+   ]
+  }
+ },
+ "vulhub/couchdb/CVE-2022-24706": {
+  "couchdb": {
+   "image": "vulhub/couchdb:3.2.1",
+   "ports": [
+    "5984:5984",
+    "4369:4369",
+    "9100:9100"
+   ],
+   "environment": {
+    "COUCHDB_USER": "vulhub",
+    "COUCHDB_PASSWORD": "vulhub"
+   }
+  }
+ },
+ "vulhub/craftcms/CVE-2023-41892": {
+  "web": {
+   "image": "vulhub/craftcms:4.4.14",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8088:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=craftcms"
+   ]
+  }
+ },
+ "vulhub/craftcms/CVE-2024-56145": {
+  "web": {
+   "image": "vulhub/craftcms:5.5.1.1",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8088:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=craftcms"
+   ]
+  }
+ },
+ "vulhub/craftcms/CVE-2025-32432": {
+  "web": {
+   "image": "vulhub/craftcms:5.6.16",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8088:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=craftcms"
+   ]
+  }
+ },
+ "vulhub/cups-browsed/CVE-2024-47177": {
+  "cups": {
+   "image": "vulhub/cups-browsed:2.0.1",
+   "ports": [
+    "631:631/tcp",
+    "631:631/udp"
+   ]
+  }
+ },
+ "vulhub/dataease/CVE-2024-56511": {
+  "web": {
+   "image": "vulhub/dataease:2.10.3",
+   "environment": [
+    "MYSQL_HOST=db",
+    "MYSQL_PORT=3306",
+    "MYSQL_DB=dataease",
+    "MYSQL_USER=root",
+    "MYSQL_PASSWORD=root"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8100:8100",
+    "5005:5005"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=dataease"
+   ]
+  }
+ },
+ "vulhub/dataease/CVE-2025-32966": {
+  "web": {
+   "image": "vulhub/dataease:2.10.7",
+   "environment": [
+    "MYSQL_HOST=db",
+    "MYSQL_PORT=3306",
+    "MYSQL_DB=dataease",
+    "MYSQL_USER=root",
+    "MYSQL_PASSWORD=root"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8100:8100",
+    "5005:5005"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=dataease"
+   ]
+  }
+ },
+ "vulhub/dataease/CVE-2025-49001": {
+  "web": {
+   "image": "vulhub/dataease:2.10.7",
+   "environment": [
+    "MYSQL_HOST=db",
+    "MYSQL_PORT=3306",
+    "MYSQL_DB=dataease",
+    "MYSQL_USER=root",
+    "MYSQL_PASSWORD=root"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8100:8100",
+    "5005:5005"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.4",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=dataease"
+   ]
+  }
+ },
+ "vulhub/discuz/wooyun-2010-080723": {
+  "discuz": {
+   "image": "vulhub/discuz:7.2",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.5",
+   "environment": {
+    "MYSQL_ROOT_PASSWORD": "root",
+    "MYSQL_DATABASE": "discuz"
+   }
+  }
+ },
+ "vulhub/discuz/x3.4-arbitrary-file-deletion": {
+  "discuz": {
+   "image": "vulhub/discuz:x3.4",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "80:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.5",
+   "environment": {
+    "MYSQL_ROOT_PASSWORD": "root",
+    "MYSQL_DATABASE": "ultrax"
+   }
+  }
+ },
+ "vulhub/django/CVE-2017-12794": {
+  "web": {
+   "image": "vulhub/django:1.11.4",
+   "volumes": [
+    ".:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "environment": [
+    "DATABASE_URL=postgres://postgres:postgres@db:5432/postgres"
+   ]
+  },
+  "db": {
+   "image": "postgres:9.6-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres"
+   ]
+  }
+ },
+ "vulhub/django/CVE-2018-14574": {
+  "web": {
+   "image": "vulhub/django:2.0.7",
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/django/CVE-2019-14234": {
+  "web": {
+   "image": "vulhub/django:2.2.3",
+   "working_dir": "/app",
+   "volumes": [
+    ".:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "command": "bash /app/docker-entrypoint.sh"
+  },
+  "db": {
+   "image": "postgres:9.6-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres"
+   ]
+  }
+ },
+ "vulhub/django/CVE-2020-9402": {
+  "web": {
+   "image": "vulhub/django:3.0.3",
+   "working_dir": "/app",
+   "volumes": [
+    ".:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "restart": "always",
+   "command": "bash /app/docker-entrypoint.sh"
+  },
+  "db": {
+   "image": "vulhub/oracle:12c-ee",
+   "restart": "always"
+  }
+ },
+ "vulhub/django/CVE-2021-35042": {
+  "web": {
+   "image": "vulhub/django:3.2.4",
+   "working_dir": "/app",
+   "volumes": [
+    ".:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "command": "bash /app/docker-entrypoint.sh"
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=mysql",
+    "MYSQL_DATABASE=cve"
+   ]
+  }
+ },
+ "vulhub/django/CVE-2022-34265": {
+  "web": {
+   "image": "vulhub/django:4.0.5",
+   "working_dir": "/app",
+   "volumes": [
+    ".:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "command": "bash /app/docker-entrypoint.sh"
+  },
+  "db": {
+   "image": "postgres:13-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=CVE_2022_34265"
+   ]
+  }
+ },
+ "vulhub/dns/dns-zone-transfer": {
+  "dns": {
+   "image": "vulhub/bind:9.10.3",
+   "ports": [
+    "53:53/tcp",
+    "53:53/udp"
+   ],
+   "volumes": [
+    "./named.conf.local:/etc/bind/named.conf.local",
+    "./vulhub.db:/etc/bind/vulhub.db"
+   ]
+  }
+ },
+ "vulhub/docker/unauthorized-rce": {
+  "docker": {
+   "build": ".",
+   "ports": [
+    "2375:2375"
+   ],
+   "privileged": true
+  }
+ },
+ "vulhub/drupal/CVE-2014-3704": {
+  "web": {
+   "image": "vulhub/drupal:7.31",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=drupal"
+   ]
+  }
+ },
+ "vulhub/drupal/CVE-2017-6920": {
+  "web": {
+   "image": "vulhub/drupal:8.3.0",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/drupal/CVE-2018-7600": {
+  "web": {
+   "image": "vulhub/drupal:8.5.0",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/drupal/CVE-2018-7602": {
+  "web": {
+   "image": "vulhub/drupal:7.57",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/drupal/CVE-2019-6339": {
+  "web": {
+   "image": "vulhub/drupal:8.5.0",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/drupal/CVE-2019-6341": {
+  "web": {
+   "image": "vulhub/drupal:8.5.0",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/dubbo/CVE-2019-17564": {
+  "provider": {
+   "image": "vulhub/dubbo:2.7.3",
+   "depends_on": [
+    "zookeeper"
+   ],
+   "ports": [
+    "8080:8080"
+   ],
+   "environment": [
+    "DUBBO_REGISTRY=zookeeper://zookeeper:2181"
+   ]
+  },
+  "zookeeper": {
+   "image": "zookeeper:3.7.0",
+   "ports": [
+    "2181:2181"
+   ]
+  }
+ },
+ "vulhub/ecshop/collection_list-sqli": {
+  "web": {
+   "image": "vulhub/ecshop:4.0.6",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root"
+   ]
+  }
+ },
+ "vulhub/ecshop/xianzhi-2017-02-82239600": {
+  "ecshop27": {
+   "image": "vulhub/ecshop:2.7.3",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "ecshop36": {
+   "image": "vulhub/ecshop:3.6.0",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "8081:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root"
+   ]
+  }
+ },
+ "vulhub/elasticsearch/CVE-2014-3120": {
+  "es": {
+   "image": "vulhub/elasticsearch:1.1.1",
+   "ports": [
+    "9200:9200",
+    "9300:9300"
+   ]
+  }
+ },
+ "vulhub/elasticsearch/CVE-2015-1427": {
+  "es": {
+   "image": "vulhub/elasticsearch:1.4.2",
+   "ports": [
+    "9200:9200",
+    "9300:9300"
+   ]
+  }
+ },
+ "vulhub/elasticsearch/CVE-2015-3337": {
+  "es": {
+   "build": ".",
+   "ports": [
+    "9200:9200",
+    "9300:9300"
+   ]
+  }
+ },
+ "vulhub/elasticsearch/CVE-2015-5531": {
+  "es": {
+   "build": ".",
+   "ports": [
+    "9200:9200",
+    "9300:9300"
+   ]
+  }
+ },
+ "vulhub/elasticsearch/WooYun-2015-110216": {
+  "es": {
+   "image": "vulhub/elasticsearch:1.5.1-with-tomcat",
+   "ports": [
+    "9200:9200",
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/electron/CVE-2018-1000006": {
+  "electron": {
+   "image": "vulhub/electron:wine",
+   "command": "bash /docker-entrypoint.sh",
+   "volumes": [
+    "./src:/project",
+    "./build:/build",
+    "./docker-entrypoint.sh:/docker-entrypoint.sh"
+   ]
+  },
+  "web": {
+   "image": "nginx:1",
+   "volumes": [
+    "./build:/usr/share/nginx/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/electron/CVE-2018-15685": {
+  "electron": {
+   "image": "vulhub/electron:wine",
+   "command": "bash /docker-entrypoint.sh",
+   "volumes": [
+    "./src:/project",
+    "./build:/build",
+    "./docker-entrypoint.sh:/docker-entrypoint.sh"
+   ]
+  },
+  "web": {
+   "image": "nginx:1",
+   "volumes": [
+    "./build:/usr/share/nginx/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/elfinder/CVE-2021-32682": {
+  "web": {
+   "image": "vulhub/elfinder:2.1.58",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/erlang/CVE-2025-32433": {
+  "sshd": {
+   "image": "vulhub/erlang:27.3.2-with-ssh",
+   "ports": [
+    "2222:2222"
+   ],
+   "init": true
+  }
+ },
+ "vulhub/fastjson/1.2.24-rce": {
+  "web": {
+   "image": "vulhub/fastjson:1.2.24",
+   "ports": [
+    "8090:8090"
+   ]
+  }
+ },
+ "vulhub/fastjson/1.2.47-rce": {
+  "web": {
+   "image": "vulhub/fastjson:1.2.45",
+   "ports": [
+    "8090:8090"
+   ]
+  }
+ },
+ "vulhub/fastjson/1.2.83-rce": {
+  "web": {
+   "image": "vulhub/fastjson:1.2.83",
+   "ports": [
+    "8090:8090",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ffmpeg/CVE-2016-1897": {
+  "web": {
+   "image": "vulhub/ffmpeg:2.8.4-with-php",
+   "command": "php -S 0.0.0.0:8080 -t /var/www/html",
+   "volumes": [
+    "./www/index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/ffmpeg/CVE-2017-9993": {
+  "web": {
+   "image": "vulhub/ffmpeg:3.2.4-with-php",
+   "command": "php -S 0.0.0.0:8080 -t /var/www/html",
+   "volumes": [
+    "./www/index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/flask/ssti": {
+  "web": {
+   "image": "vulhub/flask:1.1.1",
+   "volumes": [
+    "./src:/app"
+   ],
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/flink/CVE-2020-17518": {
+  "flink": {
+   "image": "vulhub/flink:1.11.2",
+   "command": "jobmanager",
+   "ports": [
+    "8081:8081",
+    "6123:6123"
+   ]
+  }
+ },
+ "vulhub/flink/CVE-2020-17519": {
+  "flink": {
+   "image": "vulhub/flink:1.11.2",
+   "command": "jobmanager",
+   "ports": [
+    "8081:8081",
+    "6123:6123"
+   ]
+  }
+ },
+ "vulhub/geoserver/CVE-2021-40822": {
+  "web": {
+   "image": "vulhub/geoserver:2.19.1",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/geoserver/CVE-2022-24816": {
+  "web": {
+   "image": "vulhub/geoserver:2.17.2",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/geoserver/CVE-2023-25157": {
+  "web": {
+   "image": "vulhub/geoserver:2.22.1",
+   "depends_on": [
+    "postgres"
+   ],
+   "ports": [
+    "8080:8080"
+   ],
+   "volumes": [
+    "./startup.sh:/startup.sh"
+   ],
+   "command": "bash /startup.sh"
+  },
+  "postgres": {
+   "image": "postgis/postgis:14-3.3-alpine",
+   "environment": [
+    "POSTGRES_PASSWORD=vulhub",
+    "POSTGRES_DB=geoserver"
+   ]
+  }
+ },
+ "vulhub/geoserver/CVE-2024-36401": {
+  "web": {
+   "image": "vulhub/geoserver:2.23.2",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ghostscript/CVE-2018-16509": {
+  "web": {
+   "image": "vulhub/imagemagick:7.0.8-10-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/ghostscript/CVE-2018-19475": {
+  "web": {
+   "image": "vulhub/imagemagick:7.0.8-20-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/ghostscript/CVE-2019-6116": {
+  "web": {
+   "image": "vulhub/imagemagick:7.0.8-27-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/git/CVE-2017-8386": {
+  "git": {
+   "image": "vulhub/git:2.12.2-with-openssh",
+   "ports": [
+    "3322:22"
+   ]
+  }
+ },
+ "vulhub/gitea/1.4-rce": {
+  "web": {
+   "image": "vulhub/gitea:1.4.0",
+   "ports": [
+    "3000:3000",
+    "20022:22"
+   ]
+  }
+ },
+ "vulhub/gitlab/CVE-2016-9086": {
+  "redis": {
+   "image": "redis:4.0.14-alpine"
+  },
+  "postgresql": {
+   "image": "postgres:11.9-alpine",
+   "environment": [
+    "POSTGRES_USER=gitlab",
+    "POSTGRES_PASSWORD=password",
+    "POSTGRES_DB=gitlabhq_production",
+    "DB_EXTENSION=pg_trgm"
+   ],
+   "volumes": [
+    "./load-extensions.sh:/docker-entrypoint-initdb.d/load-extensions.sh"
+   ]
+  },
+  "gitlab": {
+   "image": "vulhub/gitlab:8.13.1",
+   "depends_on": [
+    "redis",
+    "postgresql"
+   ],
+   "ports": [
+    "8080:80",
+    "10022:22"
+   ],
+   "environment": [
+    "DEBUG=false",
+    "GITLAB_PORT=8080",
+    "GITLAB_SSH_PORT=10022",
+    "GITLAB_SECRETS_DB_KEY_BASE=secret-key-is-here1",
+    "GITLAB_SECRETS_SECRET_KEY_BASE=secret-key-is-here2",
+    "GITLAB_SECRETS_OTP_KEY_BASE=secret-key-is-here3",
+    "DB_ADAPTER=postgresql",
+    "DB_HOST=postgresql",
+    "DB_USER=gitlab",
+    "DB_PASS=password",
+    "DB_NAME=gitlabhq_production",
+    "REDIS_HOST=redis",
+    "GITLAB_ROOT_PASSWORD=vulhub123456"
+   ]
+  }
+ },
+ "vulhub/gitlab/CVE-2021-22205": {
+  "redis": {
+   "image": "redis:5.0.9-alpine"
+  },
+  "postgresql": {
+   "image": "postgres:12-alpine",
+   "environment": [
+    "POSTGRES_USER=gitlab",
+    "POSTGRES_PASSWORD=password",
+    "POSTGRES_DB=gitlabhq_production",
+    "DB_EXTENSION=pg_trgm,btree_gist"
+   ]
+  },
+  "gitlab": {
+   "image": "vulhub/gitlab:13.10.1",
+   "depends_on": [
+    "redis",
+    "postgresql"
+   ],
+   "ports": [
+    "8080:80",
+    "10022:22"
+   ],
+   "environment": [
+    "DEBUG=false",
+    "DB_ADAPTER=postgresql",
+    "DB_HOST=postgresql",
+    "DB_PORT=5432",
+    "DB_USER=gitlab",
+    "DB_PASS=password",
+    "DB_NAME=gitlabhq_production",
+    "REDIS_HOST=redis",
+    "REDIS_PORT=6379",
+    "GITLAB_HTTPS=false",
+    "SSL_SELF_SIGNED=false",
+    "GITLAB_HOST=localhost",
+    "GITLAB_PORT=8080",
+    "GITLAB_SSH_PORT=10022",
+    "GITLAB_RELATIVE_URL_ROOT=",
+    "GITLAB_SECRETS_DB_KEY_BASE=long-long-long-long-long-long-secret-key-is-here1",
+    "GITLAB_SECRETS_SECRET_KEY_BASE=long-long-long-long-long-long-secret-key-is-here2",
+    "GITLAB_SECRETS_OTP_KEY_BASE=long-long-long-long-long-long-secret-key-is-her3",
+    "TZ=Asia/Kolkata",
+    "GITLAB_TIMEZONE=Kolkata",
+    "GITLAB_ROOT_PASSWORD=vulhub123456"
+   ]
+  }
+ },
+ "vulhub/gitlab/CVE-2026-85706": {
+  "web": {
+   "image": "vulhub/gitlab:19.3.1",
+   "hostname": "gitlab.example.com",
+   "shm_size": "256m",
+   "ports": [
+    "8080:80",
+    "10022:22"
+   ],
+   "environment": {
+    "GITLAB_OMNIBUS_CONFIG": "external_url 'http://gitlab.example.com'\ngitlab_rails['gitlab_shell_ssh_port'] = 10022\ngitlab_rails['initial_root_password'] = 'vulhub123456'\nletsencrypt['enable'] = false\n"
+   }
+  }
+ },
+ "vulhub/gitlab/CVE-2026-97229": {
+  "web": {
+   "image": "vulhub/gitlab:19.4.1",
+   "hostname": "gitlab.example.com",
+   "shm_size": "256m",
+   "ports": [
+    "8080:80",
+    "10022:22"
+   ],
+   "volumes": [
+    "./initialize-gitlab.rb:/opt/vulhub/initialize-gitlab.rb:ro"
+   ],
+   "environment": {
+    "GITLAB_POST_RECONFIGURE_SCRIPT": "gitlab-rails runner /opt/vulhub/initialize-gitlab.rb\nsed -i 's/listen 127\\.0\\.0\\.1:80/listen *:80/' /var/opt/gitlab/nginx/conf/service_conf/gitlab-rails.conf\ngrep -Fq 'listen *:80' /var/opt/gitlab/nginx/conf/service_conf/gitlab-rails.conf\n/opt/gitlab/embedded/sbin/nginx -t -p /var/opt/gitlab/nginx\ngitlab-ctl restart nginx\n",
+    "GITLAB_OMNIBUS_CONFIG": "external_url 'http://gitlab.example.com'\ngitlab_rails['gitlab_shell_ssh_port'] = 10022\ngitlab_rails['initial_root_password'] = 'vulhub123456'\nletsencrypt['enable'] = false\ngitlab_rails['nginx']['listen_addresses'] = ['127.0.0.1']\n"
+   }
+  }
+ },
+ "vulhub/gitlist/CVE-2018-1000533": {
+  "web": {
+   "build": ".",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/glassfish/CVE-2017-1000028": {
+  "glassfish": {
+   "image": "vulhub/glassfish:4.1",
+   "ports": [
+    "4848:4848",
+    "5005:5005"
+   ],
+   "environment": [
+    "ADMIN_PASSWORD=vulhub_default_password",
+    "JAVA_DEBUGGER_PORT=5005"
+   ]
+  }
+ },
+ "vulhub/goahead/CVE-2017-17562": {
+  "web": {
+   "image": "vulhub/goahead:3.6.4",
+   "ports": [
+    "8080:80"
+   ],
+   "volumes": [
+    "./index:/var/www/goahead/cgi-bin/index"
+   ]
+  }
+ },
+ "vulhub/goahead/CVE-2021-42342": {
+  "web": {
+   "image": "vulhub/goahead:5.1.4",
+   "ports": [
+    "8080:80"
+   ],
+   "volumes": [
+    "./index:/var/www/goahead/cgi-bin/index"
+   ]
+  }
+ },
+ "vulhub/gogs/CVE-2018-18925": {
+  "web": {
+   "image": "vulhub/gogs:0.11.66",
+   "ports": [
+    "10022:22",
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/gotenberg/CVE-2026-40281": {
+  "web": {
+   "image": "vulhub/gotenberg:8.30.1",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/gradio/CVE-2023-51449": {
+  "web": {
+   "image": "vulhub/gradio:4.10.0",
+   "ports": [
+    "7860:7860"
+   ]
+  }
+ },
+ "vulhub/gradio/CVE-2024-1561": {
+  "web": {
+   "image": "vulhub/gradio:4.12.0",
+   "ports": [
+    "7860:7860"
+   ]
+  }
+ },
+ "vulhub/grafana/CVE-2021-43798": {
+  "web": {
+   "image": "vulhub/grafana:8.2.6",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/grafana/CVE-2024-9264": {
+  "grafana": {
+   "image": "vulhub/grafana:11.0.0",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/grafana/admin-ssrf": {
+  "web": {
+   "image": "vulhub/grafana:8.5.4",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/h2database/CVE-2018-10054": {
+  "web": {
+   "image": "vulhub/spring-with-h2database:1.4.197",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/h2database/CVE-2021-42392": {
+  "web": {
+   "image": "vulhub/spring-with-h2database:2.0.204",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/h2database/CVE-2022-23221": {
+  "web": {
+   "image": "vulhub/spring-with-h2database:2.0.206",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/hadoop/unauthorized-yarn": {
+  "namenode": {
+   "image": "vulhub/hadoop:2.8.1",
+   "environment": [
+    "HDFS_CONF_dfs_namenode_name_dir=file:///hadoop/dfs/name",
+    "CLUSTER_NAME=vulhub",
+    "HDFS_CONF_dfs_replication=1"
+   ],
+   "command": "/namenode.sh"
+  },
+  "datanode": {
+   "image": "vulhub/hadoop:2.8.1",
+   "environment": [
+    "HDFS_CONF_dfs_datanode_data_dir=file:///hadoop/dfs/data",
+    "CORE_CONF_fs_defaultFS=hdfs://namenode:8020",
+    "CLUSTER_NAME=vulhub",
+    "HDFS_CONF_dfs_replication=1"
+   ],
+   "command": "/datanode.sh"
+  },
+  "resourcemanager": {
+   "image": "vulhub/hadoop:2.8.1",
+   "environment": [
+    "CORE_CONF_fs_defaultFS=hdfs://namenode:8020",
+    "YARN_CONF_yarn_log___aggregation___enable=true"
+   ],
+   "command": "/resourcemanager.sh",
+   "ports": [
+    "8088:8088"
+   ]
+  },
+  "nodemanager": {
+   "image": "vulhub/hadoop:2.8.1",
+   "environment": [
+    "CORE_CONF_fs_defaultFS=hdfs://namenode:8020",
+    "YARN_CONF_yarn_resourcemanager_hostname=resourcemanager",
+    "YARN_CONF_yarn_log___aggregation___enable=true",
+    "YARN_CONF_yarn_nodemanager_remote___app___log___dir=/app-logs"
+   ],
+   "command": "/nodemanager.sh"
+  }
+ },
+ "vulhub/hertzbeat/CVE-2024-42323": {
+  "hertzbeat": {
+   "image": "vulhub/hertzbeat:1.4.4",
+   "ports": [
+    "1157:1157",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/httpd/CVE-2017-15715": {
+  "apache": {
+   "build": ".",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/httpd/CVE-2021-40438": {
+  "apache": {
+   "build": ".",
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "tomcat": {
+   "image": "vulhub/tomcat:8.5.19"
+  }
+ },
+ "vulhub/httpd/CVE-2021-41773": {
+  "apache": {
+   "build": ".",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/httpd/CVE-2021-42013": {
+  "apache": {
+   "build": ".",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/httpd/apache_parsing_vulnerability": {
+  "apache": {
+   "image": "vulhub/php:7.1.3-apache",
+   "volumes": [
+    "./www:/var/www/html",
+    "./conf/docker-php.conf:/etc/apache2/conf-enabled/docker-php.conf",
+    "./start.sh:/var/www/start.sh"
+   ],
+   "command": "/bin/sh /var/www/start.sh",
+   "ports": [
+    "80:80"
+   ]
+  }
+ },
+ "vulhub/httpd/ssi-rce": {
+  "apache": {
+   "image": "vulhub/php:7.4.33-apache",
+   "ports": [
+    "8080:80"
+   ],
+   "volumes": [
+    "./upload.php:/var/www/html/upload.php"
+   ]
+  }
+ },
+ "vulhub/hugegraph/CVE-2024-27348": {
+  "web": {
+   "image": "vulhub/hugegraph:1.2.0",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/hugegraph/CVE-2024-43441": {
+  "web": {
+   "image": "vulhub/hugegraph:1.3.0",
+   "environment": [
+    "PASSWORD=vulhub"
+   ],
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/imagemagick/CVE-2016-3714": {
+  "web": {
+   "image": "vulhub/imagemagick:6.9.2-10-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/imagemagick/CVE-2020-29599": {
+  "im": {
+   "image": "vulhub/imagemagick:7.0.10-36",
+   "volumes": [
+    "./poc.svg:/tmp/poc.svg"
+   ]
+  }
+ },
+ "vulhub/imagemagick/CVE-2022-44268": {
+  "web": {
+   "image": "vulhub/imagemagick:7.1.0-49-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/inetutils/CVE-2026-24061": {
+  "telnetd": {
+   "image": "vulhub/inetutils:2.5",
+   "ports": [
+    "2323:23"
+   ]
+  }
+ },
+ "vulhub/influxdb/CVE-2019-20933": {
+  "web": {
+   "image": "vulhub/influxdb:1.6.6",
+   "environment": [
+    "INFLUXDB_HTTP_AUTH_ENABLED=true",
+    "INFLUXDB_ADMIN_USER=admin",
+    "INFLUXDB_ADMIN_PASSWORD=admin",
+    "INFLUXDB_DB=sample"
+   ],
+   "ports": [
+    "8086:8086"
+   ]
+  }
+ },
+ "vulhub/ingress-nginx/CVE-2025-1974": {
+  "k3s": {
+   "image": "vulhub/ingress-nginx:1.9.5",
+   "privileged": true,
+   "environment": [
+    "K3S_KUBECONFIG_MODE=666"
+   ],
+   "ports": [
+    "30080:30080",
+    "30443:30443"
+   ]
+  }
+ },
+ "vulhub/jackson/CVE-2017-7525": {
+  "web": {
+   "image": "vulhub/spring-with-jackson:2.8.8",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/java/rmi-codebase": {
+  "rmi": {
+   "image": "vulhub/j2ee:8u222",
+   "ports": [
+    "1099:1099",
+    "64000:64000"
+   ],
+   "environment": [
+    "RMIIP=127.0.0.1"
+   ]
+  }
+ },
+ "vulhub/java/rmi-registry-bind-deserialization": {
+  "rmi": {
+   "image": "vulhub/j2ee:8u131",
+   "ports": [
+    "1099:1099"
+   ],
+   "environment": [
+    "RMIIP=192.168.31.88"
+   ]
+  }
+ },
+ "vulhub/java/rmi-registry-bind-deserialization-bypass": {
+  "rmi": {
+   "image": "vulhub/j2ee:8u111",
+   "ports": [
+    "1099:1099"
+   ],
+   "environment": [
+    "RMIIP=192.168.31.88"
+   ]
+  }
+ },
+ "vulhub/jboss/CVE-2017-12149": {
+  "jboss": {
+   "image": "vulhub/jboss:as-6.1.0",
+   "ports": [
+    "9990:9990",
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/jboss/CVE-2017-7504": {
+  "jboss": {
+   "image": "vulhub/jboss:as-4.0.5",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/jboss/JMXInvokerServlet-deserialization": {
+  "jboss": {
+   "image": "vulhub/jboss:as-6.1.0",
+   "ports": [
+    "9990:9990",
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/jenkins/CVE-2017-1000353": {
+  "jenkins": {
+   "image": "vulhub/jenkins:2.46.1",
+   "init": true,
+   "ports": [
+    "50000:50000",
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/jenkins/CVE-2018-1000861": {
+  "jenkins": {
+   "image": "vulhub/jenkins:2.138",
+   "ports": [
+    "50000:50000",
+    "8080:8080"
+   ],
+   "init": true
+  }
+ },
+ "vulhub/jenkins/CVE-2024-23897": {
+  "jenkins": {
+   "image": "vulhub/jenkins:2.441",
+   "ports": [
+    "50000:50000",
+    "8080:8080",
+    "5005:5005"
+   ],
+   "init": true,
+   "environment": [
+    "DEBUG=1"
+   ]
+  }
+ },
+ "vulhub/jetty/CVE-2021-28164": {
+  "web": {
+   "image": "vulhub/jetty:9.4.37",
+   "ports": [
+    "8080:8080"
+   ],
+   "volumes": [
+    "./src:/opt/jetty/webapps/ROOT"
+   ]
+  }
+ },
+ "vulhub/jetty/CVE-2021-28169": {
+  "web": {
+   "image": "vulhub/jetty:9.4.40",
+   "ports": [
+    "8080:8080"
+   ],
+   "volumes": [
+    "./src:/opt/jetty/webapps/ROOT"
+   ]
+  }
+ },
+ "vulhub/jetty/CVE-2021-34429": {
+  "web": {
+   "image": "vulhub/jetty:9.4.40",
+   "ports": [
+    "8080:8080"
+   ],
+   "volumes": [
+    "./src:/opt/jetty/webapps/ROOT"
+   ]
+  }
+ },
+ "vulhub/jimureport/CVE-2023-4450": {
+  "web": {
+   "image": "vulhub/jimureport:1.6.0",
+   "depends_on": [
+    "db"
+   ],
+   "environment": [
+    "MYSQL_HOST=db",
+    "MYSQL_PORT=3306",
+    "MYSQL_DB=jimureport",
+    "MYSQL_USER=root",
+    "MYSQL_PASSWORD=root"
+   ],
+   "ports": [
+    "8085:8085",
+    "5005:5005"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=jimureport"
+   ]
+  }
+ },
+ "vulhub/jira/CVE-2019-11581": {
+  "jira": {
+   "image": "vulhub/jira:8.1.0",
+   "ports": [
+    "8080:8080"
+   ],
+   "links": [
+    "smtpd"
+   ]
+  },
+  "smtpd": {
+   "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile.smtpd"
+   }
+  }
+ },
+ "vulhub/jmeter/CVE-2018-1297": {
+  "jmeter": {
+   "image": "vulhub/jmeter:3.3",
+   "ports": [
+    "1099:1099"
+   ]
+  }
+ },
+ "vulhub/joomla/CVE-2015-8562": {
+  "web": {
+   "image": "vulhub/joomla:3.4.5",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "JOOMLA_DB_HOST=mysql",
+    "JOOMLA_DB_PORT=3306",
+    "JOOMLA_DB_USER=root",
+    "JOOMLA_DB_PASSWORD=vulhub",
+    "JOOMLA_DB_NAME=joomla"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=vulhub"
+   ]
+  }
+ },
+ "vulhub/joomla/CVE-2017-8917": {
+  "web": {
+   "image": "vulhub/joomla:3.7.0",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "JOOMLA_DB_HOST=mysql",
+    "JOOMLA_DB_PORT=3306",
+    "JOOMLA_DB_USER=root",
+    "JOOMLA_DB_PASSWORD=vulhub",
+    "JOOMLA_DB_NAME=joomla"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=vulhub"
+   ]
+  }
+ },
+ "vulhub/joomla/CVE-2023-23752": {
+  "web": {
+   "image": "vulhub/joomla:4.2.7",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "JOOMLA_DB_HOST=mysql",
+    "JOOMLA_DB_PORT=3306",
+    "JOOMLA_DB_USER=root",
+    "JOOMLA_DB_PASSWORD=vulhub",
+    "JOOMLA_DB_NAME=joomla"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=vulhub"
+   ]
+  }
+ },
+ "vulhub/jumpserver/CVE-2023-42820": {
+  "core": {
+   "image": "vulhub/jumpserver:3.6.3",
+   "ulimits": {
+    "core": 0
+   },
+   "restart": "always",
+   "tty": true,
+   "environment": {
+    "MAGNUS_PORT": "${MAGNUS_PORT:-30000-30020}"
+   },
+   "env_file": "config.env",
+   "ports": [
+    "8080:80",
+    "2222:2222"
+   ],
+   "networks": [
+    "jumpnet"
+   ]
+  },
+  "mysql": {
+   "image": "mariadb:10.11.5",
+   "command": "--character-set-server=utf8 --collation-server=utf8_general_ci",
+   "env_file": "config.env",
+   "networks": [
+    "jumpnet"
+   ]
+  },
+  "redis": {
+   "image": "redis:6.2.13",
+   "command": [
+    "/bin/sh",
+    "-c",
+    "redis-server --requirepass $$REDIS_PASSWORD --loglevel warning --maxmemory-policy allkeys-lru"
+   ],
+   "env_file": "config.env",
+   "networks": [
+    "jumpnet"
+   ]
+  }
+ },
+ "vulhub/jupyter/notebook-rce": {
+  "web": {
+   "image": "vulhub/jupyter-notebook:5.2.2",
+   "command": "start-notebook.sh --NotebookApp.token=''",
+   "ports": [
+    "8888:8888"
+   ]
+  }
+ },
+ "vulhub/kafka/CVE-2023-25194": {
+  "web": {
+   "image": "vulhub/apache-druid:25.0.0",
+   "ports": [
+    "8888:8888"
+   ]
+  }
+ },
+ "vulhub/kibana/CVE-2018-17246": {
+  "kibana": {
+   "image": "vulhub/kibana:5.6.12",
+   "depends_on": [
+    "elasticsearch"
+   ],
+   "ports": [
+    "5601:5601"
+   ]
+  },
+  "elasticsearch": {
+   "image": "vulhub/elasticsearch:5.6.16"
+  }
+ },
+ "vulhub/kibana/CVE-2019-7609": {
+  "kibana": {
+   "image": "vulhub/kibana:6.5.4",
+   "depends_on": [
+    "elasticsearch"
+   ],
+   "ports": [
+    "5601:5601"
+   ]
+  },
+  "elasticsearch": {
+   "image": "vulhub/elasticsearch:6.8.6"
+  }
+ },
+ "vulhub/kibana/CVE-2020-7012": {
+  "kibana": {
+   "image": "vulhub/kibana:7.6.2",
+   "depends_on": [
+    "elasticsearch"
+   ],
+   "ports": [
+    "5601:5601"
+   ]
+  },
+  "elasticsearch": {
+   "image": "vulhub/elasticsearch:7.6.2",
+   "environment": [
+    "discovery.type=single-node"
+   ]
+  }
+ },
+ "vulhub/kkfileview/4.3-zipslip-rce": {
+  "web": {
+   "image": "vulhub/kkfileview:4.3.0",
+   "ports": [
+    "8012:8012",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/langflow/CVE-2025-3248": {
+  "web": {
+   "image": "vulhub/langflow:1.2.0",
+   "ports": [
+    "7860:7860"
+   ],
+   "environment": [
+    "LANGFLOW_HOST=0.0.0.0",
+    "LANGFLOW_AUTO_LOGIN=false",
+    "LANGFLOW_SUPERUSER=administrator",
+    "LANGFLOW_SUPERUSER_PASSWORD=vulhub",
+    "DO_NOT_TRACK=true",
+    "GIT_PYTHON_REFRESH=quiet"
+   ]
+  }
+ },
+ "vulhub/langflow/CVE-2026-33017": {
+  "web": {
+   "image": "vulhub/langflow:1.8.1",
+   "ports": [
+    "7860:7860"
+   ],
+   "environment": [
+    "LANGFLOW_HOST=0.0.0.0",
+    "LANGFLOW_AUTO_LOGIN=false",
+    "LANGFLOW_SUPERUSER=administrator",
+    "LANGFLOW_SUPERUSER_PASSWORD=vulhub",
+    "LANGFLOW_LOAD_FLOWS_PATH=/app/flows",
+    "DO_NOT_TRACK=true"
+   ]
+  }
+ },
+ "vulhub/laravel/CVE-2021-3129": {
+  "web": {
+   "image": "vulhub/laravel:8.4.2",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/librsvg/CVE-2023-38633": {
+  "web": {
+   "image": "vulhub/librsvg:2.50.7-php",
+   "command": "php -t /var/www/html -S 0.0.0.0:8080",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/libssh/CVE-2018-10933": {
+  "sshd": {
+   "image": "vulhub/libssh:0.8.1",
+   "ports": [
+    "2222:22"
+   ]
+  }
+ },
+ "vulhub/liferay-portal/CVE-2020-7961": {
+  "web": {
+   "image": "vulhub/liferay-portal:7.2.0-ga1",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/linkis/CVE-2022-44645": {
+  "mysql": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=linkis"
+   ]
+  },
+  "web": {
+   "image": "vulhub/linkis:1.3.0",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "9001:9001",
+    "20303:20303",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/livewire/CVE-2025-54068": {
+  "web": {
+   "image": "vulhub/livewire:3.6.3",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/log4j/CVE-2017-5645": {
+  "log4j": {
+   "image": "vulhub/log4j:2.8.1",
+   "ports": [
+    "4712:4712"
+   ]
+  }
+ },
+ "vulhub/log4j/CVE-2021-44228": {
+  "solr": {
+   "image": "vulhub/solr:8.11.0",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/magento/2.2-sqli": {
+  "web": {
+   "image": "vulhub/magento:2.2.7",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=magento"
+   ]
+  }
+ },
+ "vulhub/metabase/CVE-2021-41277": {
+  "web": {
+   "image": "vulhub/metabase:0.40.4",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/metabase/CVE-2023-38646": {
+  "web": {
+   "image": "vulhub/metabase:0.46.6",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/metersphere/CVE-2021-45788": {
+  "web": {
+   "image": "vulhub/metersphere:1.15.4",
+   "ports": [
+    "8081:8081",
+    "5005:5005"
+   ],
+   "environment": {
+    "MYSQL_SERVER": "db:3306",
+    "MYSQL_DB": "metersphere",
+    "MYSQL_USERNAME": "root",
+    "MYSQL_PASSWORD": "root",
+    "KAFKA_SERVER": "kafka:9092"
+   }
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "command": "--sql-mode=\"STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION\" --max-connections=8000",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=metersphere"
+   ]
+  },
+  "kafka": {
+   "image": "apache/kafka:3.7.0",
+   "environment": [
+    "KAFKA_NODE_ID=1",
+    "KAFKA_PROCESS_ROLES=broker,controller",
+    "KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093",
+    "KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093",
+    "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092",
+    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+    "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+    "KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT",
+    "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1"
+   ]
+  }
+ },
+ "vulhub/metersphere/plugin-rce": {
+  "web": {
+   "image": "vulhub/metersphere:1.16.3",
+   "ports": [
+    "8081:8081",
+    "5005:5005"
+   ],
+   "environment": {
+    "MYSQL_SERVER": "db:3306",
+    "MYSQL_DB": "metersphere",
+    "MYSQL_USERNAME": "root",
+    "MYSQL_PASSWORD": "root",
+    "KAFKA_SERVER": "kafka:9092"
+   }
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "command": "--sql-mode=\"STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION\" --max-connections=8000",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=metersphere"
+   ]
+  },
+  "kafka": {
+   "image": "apache/kafka:3.7.0",
+   "environment": [
+    "KAFKA_NODE_ID=1",
+    "KAFKA_PROCESS_ROLES=broker,controller",
+    "KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093",
+    "KAFKA_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093",
+    "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092",
+    "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT",
+    "KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER",
+    "KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT",
+    "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1"
+   ]
+  }
+ },
+ "vulhub/mini_httpd/CVE-2018-18778": {
+  "web": {
+   "image": "vulhub/mini_httpd:1.29",
+   "command": "mini_httpd -p 8080 -u www-data -h 0.0.0.0 -D -l /dev/stdout -v -T utf-8",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/minio/CVE-2023-28432": {
+  "node1": {
+   "image": "vulhub/minio:2023-02-27T18-10-45Z",
+   "environment": [
+    "MINIO_ROOT_USER=minioadmin",
+    "MINIO_ROOT_PASSWORD=minioadmin-vulhub"
+   ],
+   "command": [
+    "minio",
+    "server",
+    "--console-address",
+    ":9001",
+    "http://node1:9000/mnt/data1",
+    "http://node2:9000/mnt/data2",
+    "http://node3:9000/mnt/data3"
+   ],
+   "ports": [
+    "9000:9000",
+    "9001:9001"
+   ],
+   "hostname": "node1",
+   "volumes": [
+    "./mnt/data1:/mnt/data1"
+   ]
+  },
+  "node2": {
+   "image": "vulhub/minio:2023-02-27T18-10-45Z",
+   "environment": [
+    "MINIO_ROOT_USER=minioadmin",
+    "MINIO_ROOT_PASSWORD=minioadmin-vulhub"
+   ],
+   "command": [
+    "minio",
+    "server",
+    "http://node1:9000/mnt/data1",
+    "http://node2:9000/mnt/data2",
+    "http://node3:9000/mnt/data3"
+   ],
+   "hostname": "node2",
+   "volumes": [
+    "./mnt/data2:/mnt/data2"
+   ]
+  },
+  "node3": {
+   "image": "vulhub/minio:2023-02-27T18-10-45Z",
+   "environment": [
+    "MINIO_ROOT_USER=minioadmin",
+    "MINIO_ROOT_PASSWORD=minioadmin-vulhub"
+   ],
+   "command": [
+    "minio",
+    "server",
+    "http://node1:9000/mnt/data1",
+    "http://node2:9000/mnt/data2",
+    "http://node3:9000/mnt/data3"
+   ],
+   "hostname": "node3",
+   "volumes": [
+    "./mnt/data3:/mnt/data3"
+   ]
+  }
+ },
+ "vulhub/mojarra/jsf-viewstate-deserialization": {
+  "web": {
+   "image": "vulhub/mojarra:2.1.28",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/mongo-express/CVE-2019-10758": {
+  "web": {
+   "image": "vulhub/mongo-express:0.53.0",
+   "depends_on": [
+    "mongo"
+   ],
+   "ports": [
+    "8081:8081"
+   ]
+  },
+  "mongo": {
+   "image": "mongo:3.4"
+  }
+ },
+ "vulhub/mysql/CVE-2012-2122": {
+  "mysql": {
+   "image": "vulhub/mysql:5.5.23",
+   "ports": [
+    "3306:3306"
+   ]
+  }
+ },
+ "vulhub/n8n/CVE-2025-68613": {
+  "n8n": {
+   "image": "vulhub/n8n:1.65.0",
+   "ports": [
+    "5678:5678"
+   ]
+  }
+ },
+ "vulhub/n8n/CVE-2026-21858": {
+  "n8n": {
+   "image": "vulhub/n8n:1.65.0",
+   "ports": [
+    "5678:5678"
+   ]
+  }
+ },
+ "vulhub/nacos/CVE-2021-29441": {
+  "web": {
+   "image": "vulhub/nacos:1.4.0",
+   "ports": [
+    "8848:8848",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/nacos/CVE-2021-29442": {
+  "web": {
+   "image": "vulhub/nacos:1.4.0",
+   "ports": [
+    "8848:8848",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/neo4j/CVE-2021-34371": {
+  "web": {
+   "image": "vulhub/neo4j:3.4.18",
+   "ports": [
+    "7474:7474",
+    "7687:7687",
+    "1337:1337",
+    "34444:34444"
+   ],
+   "environment": {
+    "NEO4J_AUTH": "neo4j/vulhub",
+    "JAVA_OPTS": "-Djava.rmi.server.hostname=${TARGET_IP:-127.0.0.1}"
+   }
+  }
+ },
+ "vulhub/next.js/CVE-2025-29927": {
+  "web": {
+   "image": "vulhub/nextjs:15.2.2",
+   "ports": [
+    "3000:3000"
+   ],
+   "environment": [
+    "NODE_ENV=production"
+   ]
+  }
+ },
+ "vulhub/nexus/CVE-2019-7238": {
+  "web": {
+   "image": "vulhub/nexus:3.14.0",
+   "ports": [
+    "8081:8081",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/nexus/CVE-2020-10199": {
+  "web": {
+   "image": "vulhub/nexus:3.21.1",
+   "ports": [
+    "8081:8081"
+   ],
+   "volumes": [
+    "./admin.password:/nexus-data/admin.password"
+   ]
+  }
+ },
+ "vulhub/nexus/CVE-2020-10204": {
+  "web": {
+   "image": "vulhub/nexus:3.21.1",
+   "ports": [
+    "8081:8081",
+    "5005:5005"
+   ],
+   "volumes": [
+    "./admin.password:/nexus-data/admin.password"
+   ]
+  }
+ },
+ "vulhub/nexus/CVE-2024-4956": {
+  "web": {
+   "image": "vulhub/nexus:3.68.0",
+   "ports": [
+    "8081:8081",
+    "5005:5005"
+   ],
+   "volumes": [
+    "./admin.password:/nexus-data/admin.password"
+   ]
+  }
+ },
+ "vulhub/nginx-ui/CVE-2026-27944": {
+  "web": {
+   "image": "vulhub/nginx-ui:2.3.2",
+   "ports": [
+    "9000:9000"
+   ],
+   "environment": {
+    "NGINX_UI_NODE_SKIP_INSTALLATION": "true"
+   }
+  }
+ },
+ "vulhub/nginx/CVE-2013-4547": {
+  "nginx": {
+   "image": "vulhub/nginx:1.4.2",
+   "volumes": [
+    "./nginx.conf:/usr/local/nginx/conf/nginx.conf",
+    "./index.php:/usr/local/nginx/html/index.php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "php": {
+   "image": "vulhub/php:5.6-fpm",
+   "command": [
+    "bash",
+    "-c",
+    "mkdir -p /var/www/html/uploadfiles && chown -R www-data:www-data /var/www/html/uploadfiles && php-fpm"
+   ],
+   "volumes": [
+    "./index.php:/var/www/html/index.php",
+    "./www.conf:/usr/local/etc/php-fpm.d/zz-docker.conf"
+   ]
+  }
+ },
+ "vulhub/nginx/CVE-2017-7529": {
+  "nginx": {
+   "image": "vulhub/nginx:1.13.2",
+   "volumes": [
+    "./default.conf:/etc/nginx/conf.d/default.conf"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/nginx/insecure-configuration": {
+  "nginx": {
+   "image": "vulhub/nginx:1",
+   "volumes": [
+    "./configuration:/etc/nginx/conf.d",
+    "./files/:/home/",
+    "./www/:/usr/share/nginx/html/"
+   ],
+   "ports": [
+    "8080:8080",
+    "8081:8081",
+    "8082:8082"
+   ]
+  }
+ },
+ "vulhub/nginx/nginx_parsing_vulnerability": {
+  "nginx": {
+   "image": "vulhub/nginx:1.11.13",
+   "volumes": [
+    "./www:/usr/share/nginx/html",
+    "./nginx/default.conf:/etc/nginx/conf.d/default.conf"
+   ],
+   "depends_on": [
+    "php"
+   ],
+   "ports": [
+    "80:80",
+    "443:443"
+   ]
+  },
+  "php": {
+   "image": "vulhub/php:7.1.3-fpm",
+   "command": "/bin/sh /var/www/start.sh",
+   "volumes": [
+    "./start.sh:/var/www/start.sh",
+    "./www:/var/www/html",
+    "./php-fpm/www-2.conf:/usr/local/etc/php-fpm.d/www-2.conf"
+   ]
+  }
+ },
+ "vulhub/node/CVE-2017-14849": {
+  "node": {
+   "build": ".",
+   "volumes": [
+    "./www:/usr/src/www"
+   ],
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/node/CVE-2017-16082": {
+  "node": {
+   "build": ".",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "3000:3000"
+   ],
+   "volumes": [
+    "./www:/usr/src/www"
+   ]
+  },
+  "db": {
+   "image": "postgres:9.6",
+   "environment": [
+    "POSTGRES_PASSWORD=postgres",
+    "POSTGRES_DB=example"
+   ],
+   "volumes": [
+    "./db.sql:/docker-entrypoint-initdb.d/db.sql"
+   ]
+  }
+ },
+ "vulhub/ntopng/CVE-2021-28073": {
+  "ntopng": {
+   "image": "vulhub/ntopng:4.2",
+   "depends_on": [
+    "redis"
+   ],
+   "ports": [
+    "3000:3000"
+   ],
+   "environment": {
+    "REDIS_SERVER": "redis:6379"
+   }
+  },
+  "redis": {
+   "image": "redis:6.2-alpine"
+  }
+ },
+ "vulhub/ofbiz/CVE-2020-9496": {
+  "web": {
+   "image": "vulhub/ofbiz:17.12.01",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ofbiz/CVE-2023-49070": {
+  "web": {
+   "image": "vulhub/ofbiz:18.12.09",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ofbiz/CVE-2023-51467": {
+  "web": {
+   "image": "vulhub/ofbiz:18.12.10",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ofbiz/CVE-2024-38856": {
+  "web": {
+   "image": "vulhub/ofbiz:18.12.14",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ofbiz/CVE-2024-45195": {
+  "web": {
+   "image": "vulhub/ofbiz:18.12.15",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/ofbiz/CVE-2024-45507": {
+  "web": {
+   "image": "vulhub/ofbiz:18.12.15",
+   "ports": [
+    "8443:8443",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/openclaw/CVE-2026-25253": {
+  "web": {
+   "image": "vulhub/openclaw:2026.1.28",
+   "ports": [
+    "18789:18789"
+   ],
+   "environment": [
+    "OPENCLAW_GATEWAY_TOKEN=d4b7c7689b82981ff86c735a9f8f616b310491b0d334659a1491c55a13353e66"
+   ]
+  }
+ },
+ "vulhub/openfire/CVE-2023-32315": {
+  "web": {
+   "image": "vulhub/openfire:4.7.4",
+   "ports": [
+    "9090:9090"
+   ]
+  }
+ },
+ "vulhub/opensmtpd/CVE-2020-7247": {
+  "smtpd": {
+   "image": "vulhub/opensmtpd:6.6.1p1",
+   "ports": [
+    "8825:25"
+   ]
+  }
+ },
+ "vulhub/openssh/CVE-2018-15473": {
+  "sshd": {
+   "build": ".",
+   "environment": [
+    "ROOT_PASSWORD=vulhub"
+   ],
+   "ports": [
+    "20022:22"
+   ]
+  }
+ },
+ "vulhub/openssl/CVE-2014-0160": {
+  "nginx": {
+   "image": "vulhub/openssl:1.0.1c-with-nginx",
+   "volumes": [
+    "./www:/var/www/html"
+   ],
+   "ports": [
+    "8080:80",
+    "8443:443"
+   ]
+  }
+ },
+ "vulhub/openssl/CVE-2022-0778": {
+  "curl": {
+   "image": "vulhub/openssl:1.1.1m-with-curl",
+   "command": "sleep infinity"
+  }
+ },
+ "vulhub/opentsdb/CVE-2020-35476": {
+  "opentsdb": {
+   "image": "vulhub/opentsdb:2.4.0",
+   "ports": [
+    "4242:4242"
+   ]
+  }
+ },
+ "vulhub/opentsdb/CVE-2023-25826": {
+  "opentsdb": {
+   "image": "vulhub/opentsdb:2.4.1",
+   "ports": [
+    "4242:4242"
+   ]
+  }
+ },
+ "vulhub/owncloud/CVE-2023-49103": {
+  "owncloud": {
+   "image": "vulhub/owncloud:10.12.1",
+   "ports": [
+    "8080:8080"
+   ],
+   "environment": [
+    "OWNCLOUD_ADMIN_USERNAME=admin",
+    "OWNCLOUD_ADMIN_PASSWORD=secret123"
+   ]
+  }
+ },
+ "vulhub/pdfjs/CVE-2024-4367": {
+  "web": {
+   "image": "vulhub/pdfjs:4.1.392",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/pgadmin/CVE-2022-4223": {
+  "web": {
+   "image": "vulhub/pgadmin:6.16",
+   "ports": [
+    "5050:5050"
+   ]
+  }
+ },
+ "vulhub/pgadmin/CVE-2023-5002": {
+  "web": {
+   "image": "vulhub/pgadmin:7.6",
+   "ports": [
+    "5050:5050"
+   ]
+  }
+ },
+ "vulhub/pgadmin/CVE-2025-13780": {
+  "pgsql": {
+   "image": "postgres:17-alpine",
+   "environment": {
+    "POSTGRES_USER": "vulhub",
+    "POSTGRES_PASSWORD": "vulhub"
+   }
+  },
+  "web": {
+   "image": "vulhub/pgadmin:9.10",
+   "ports": [
+    "5050:5050"
+   ]
+  }
+ },
+ "vulhub/pgadmin/CVE-2025-2945": {
+  "pgsql": {
+   "image": "postgres:17-alpine",
+   "environment": {
+    "POSTGRES_USER": "vulhub",
+    "POSTGRES_PASSWORD": "vulhub"
+   }
+  },
+  "web": {
+   "image": "vulhub/pgadmin:9.1",
+   "ports": [
+    "5050:5050"
+   ]
+  }
+ },
+ "vulhub/php/8.1-backdoor": {
+  "web": {
+   "image": "vulhub/php:8.1-backdoor",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/CVE-2012-1823": {
+  "php": {
+   "image": "vulhub/php:5.4.1-cgi",
+   "volumes": [
+    "./www:/var/www/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/CVE-2018-19518": {
+  "web": {
+   "image": "vulhub/php:5.6.38-apache",
+   "volumes": [
+    "./www:/var/www/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/CVE-2019-11043": {
+  "nginx": {
+   "image": "nginx:1",
+   "volumes": [
+    "./www:/usr/share/nginx/html",
+    "./default.conf:/etc/nginx/conf.d/default.conf"
+   ],
+   "depends_on": [
+    "php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "php": {
+   "image": "vulhub/php:7.2.10-fpm",
+   "volumes": [
+    "./www:/var/www/html"
+   ]
+  }
+ },
+ "vulhub/php/CVE-2024-2961": {
+  "web": {
+   "image": "vulhub/php:8.3.4-apache",
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/fpm": {
+  "php": {
+   "image": "vulhub/php:7.1.3-fpm",
+   "ports": [
+    "9000:9000"
+   ]
+  }
+ },
+ "vulhub/php/inclusion": {
+  "php": {
+   "image": "vulhub/php:7.1.3-apache",
+   "volumes": [
+    "./www:/var/www/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/php_xxe": {
+  "web": {
+   "image": "vulhub/php:7.0.30",
+   "volumes": [
+    "./www:/var/www/html"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/php/xdebug-rce": {
+  "xdebug2": {
+   "image": "vulhub/php:7.1-xdebug",
+   "ports": [
+    "8080:80"
+   ],
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ]
+  },
+  "xdebug3": {
+   "image": "vulhub/php:7.4-xdebug",
+   "ports": [
+    "8081:80"
+   ],
+   "volumes": [
+    "./index.php:/var/www/html/index.php"
+   ]
+  }
+ },
+ "vulhub/phpmailer/CVE-2017-5223": {
+  "web": {
+   "image": "vulhub/phpmailer:5.2.20",
+   "ports": [
+    "8080:80"
+   ],
+   "env_file": [
+    ".env"
+   ]
+  }
+ },
+ "vulhub/phpmyadmin/CVE-2016-5734": {
+  "web": {
+   "image": "vulhub/phpmyadmin:4.4.15.6",
+   "volumes": [
+    "./config.inc.php:/var/www/html/config.inc.php"
+   ],
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "mysql"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=test"
+   ]
+  }
+ },
+ "vulhub/phpmyadmin/CVE-2018-12613": {
+  "web": {
+   "image": "vulhub/phpmyadmin:4.8.1",
+   "volumes": [
+    "./config.inc.php:/var/www/html/config.inc.php"
+   ],
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "mysql"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_RANDOM_ROOT_PASSWORD=yes",
+    "MYSQL_DATABASE=test",
+    "MYSQL_USER=test",
+    "MYSQL_PASSWORD=test"
+   ]
+  }
+ },
+ "vulhub/phpmyadmin/WooYun-2016-199433": {
+  "web": {
+   "image": "vulhub/phpmyadmin:2.8.0.4",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/phpunit/CVE-2017-9841": {
+  "web": {
+   "image": "vulhub/phpunit:5.6.2",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/polkit/CVE-2021-4034": {
+  "cmd": {
+   "image": "vulhub/polkit:0.105",
+   "ports": [
+    "2222:2222"
+   ]
+  }
+ },
+ "vulhub/postgres/CVE-2018-1058": {
+  "postgres": {
+   "image": "vulhub/postgres:9.6.7",
+   "ports": [
+    "5432:5432"
+   ],
+   "environment": [
+    "POSTGRES_PASSWORD=vulhub_secret"
+   ],
+   "volumes": [
+    "./init.sh:/docker-entrypoint-initdb.d/init.sh"
+   ]
+  }
+ },
+ "vulhub/postgres/CVE-2019-9193": {
+  "postgres": {
+   "image": "vulhub/postgres:10.7",
+   "ports": [
+    "5432:5432"
+   ],
+   "environment": [
+    "POSTGRES_PASSWORD=postgres"
+   ]
+  }
+ },
+ "vulhub/python/CVE-2024-23334": {
+  "aiohttp-app": {
+   "image": "vulhub/aiohttp:3.9.1",
+   "container_name": "aiohttp",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/python/PIL-CVE-2017-8291": {
+  "web": {
+   "image": "vulhub/ghostscript:9.21-with-flask",
+   "command": "python app.py",
+   "volumes": [
+    "./app.py:/usr/src/app.py"
+   ],
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/python/PIL-CVE-2018-16509": {
+  "web": {
+   "image": "vulhub/ghostscript:9.23-with-flask",
+   "command": "python app.py",
+   "volumes": [
+    "./app.py:/usr/src/app.py"
+   ],
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/python/unpickle": {
+  "flask": {
+   "image": "vulhub/flask:1.1.1",
+   "volumes": [
+    "./app.py:/app/app.py"
+   ],
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/rails/CVE-2018-3760": {
+  "web": {
+   "image": "vulhub/rails:5.0.7",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/rails/CVE-2019-5418": {
+  "web": {
+   "build": ".",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/react/CVE-2025-55182": {
+  "web": {
+   "image": "vulhub/nextjs:15.5.6",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/redis/4-unacc": {
+  "redis": {
+   "image": "vulhub/redis:4.0.14",
+   "ports": [
+    "6379:6379"
+   ]
+  }
+ },
+ "vulhub/redis/CVE-2022-0543": {
+  "redis": {
+   "image": "vulhub/redis:5.0.7",
+   "ports": [
+    "6379:6379"
+   ]
+  }
+ },
+ "vulhub/rocketchat/CVE-2021-22911": {
+  "rocketchat": {
+   "image": "vulhub/rocketchat:3.12.1",
+   "command": "bash -c\n  \"for i in `seq 1 30`; do\n    node main.js &&\n    s=$$? && break || s=$$?;\n    echo \\\"Tried $$i times. Waiting 5 secs...\\\";\n    sleep 5;\n  done; (exit $$s)\"\n",
+   "restart": "unless-stopped",
+   "environment": [
+    "PORT=3000",
+    "ROOT_URL=http://localhost:3000",
+    "MONGO_URL=mongodb://mongo:27017/rocketchat",
+    "MONGO_OPLOG_URL=mongodb://mongo:27017/local",
+    "MAIL_URL=smtp://smtp.email"
+   ],
+   "depends_on": [
+    "mongo"
+   ],
+   "ports": [
+    "3000:3000"
+   ]
+  },
+  "mongo": {
+   "image": "mongo:4.0",
+   "restart": "unless-stopped",
+   "command": "mongod --smallfiles --oplogSize 128 --replSet rs0 --storageEngine=mmapv1",
+   "labels": [
+    "traefik.enable=false"
+   ]
+  },
+  "mongo-init-replica": {
+   "image": "mongo:4.0",
+   "command": "bash -c\n  \"for i in `seq 1 30`; do\n    mongo mongo/rocketchat --eval \\\"\n      rs.initiate({\n        _id: 'rs0',\n        members: [ { _id: 0, host: 'localhost:27017' } ]})\\\" &&\n    s=$$? && break || s=$$?;\n    echo \\\"Tried $$i times. Waiting 5 secs...\\\";\n    sleep 5;\n  done; (exit $$s)\"\n",
+   "depends_on": [
+    "mongo"
+   ]
+  }
+ },
+ "vulhub/rocketmq/CVE-2023-33246": {
+  "rocketmq": {
+   "image": "vulhub/rocketmq:5.1.0",
+   "ports": [
+    "10911:10911",
+    "5005:5005"
+   ],
+   "command": [
+    "mqbroker",
+    "-n",
+    "localhost:9876",
+    "--enable-proxy"
+   ]
+  }
+ },
+ "vulhub/rocketmq/CVE-2023-37582": {
+  "namesrv": {
+   "image": "vulhub/rocketmq:5.1.0",
+   "ports": [
+    "9876:9876",
+    "5005:5005"
+   ],
+   "command": [
+    "mqnamesrv"
+   ]
+  },
+  "broker": {
+   "image": "vulhub/rocketmq:5.1.0",
+   "ports": [
+    "10911:10911"
+   ],
+   "command": [
+    "mqbroker",
+    "-n",
+    "namesrv:9876",
+    "--enable-proxy"
+   ]
+  }
+ },
+ "vulhub/rsync/common": {
+  "rsync": {
+   "build": ".",
+   "ports": [
+    "873:873"
+   ]
+  }
+ },
+ "vulhub/ruby/CVE-2017-17405": {
+  "web": {
+   "image": "vulhub/ruby:2.4.1",
+   "command": "ruby web.rb -p 8080 -o 0.0.0.0",
+   "working_dir": "/usr/src",
+   "volumes": [
+    "./web.rb:/usr/src/web.rb"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/saltstack/CVE-2020-11651": {
+  "saltstack": {
+   "image": "vulhub/saltstack:2019.2.3",
+   "ports": [
+    "8000:8000",
+    "4505:4505",
+    "4506:4506",
+    "2222:22"
+   ]
+  }
+ },
+ "vulhub/saltstack/CVE-2020-11652": {
+  "saltstack": {
+   "image": "vulhub/saltstack:2019.2.3",
+   "ports": [
+    "8000:8000",
+    "4505:4505",
+    "4506:4506",
+    "2222:22"
+   ]
+  }
+ },
+ "vulhub/saltstack/CVE-2020-16846": {
+  "saltstack": {
+   "image": "vulhub/saltstack:3002",
+   "ports": [
+    "8000:8000",
+    "4505:4505",
+    "4506:4506",
+    "2222:22"
+   ]
+  }
+ },
+ "vulhub/samba/CVE-2017-7494": {
+  "samba": {
+   "image": "vulhub/samba:4.6.3",
+   "tty": true,
+   "volumes": [
+    "./smb.conf:/usr/local/samba/etc/smb.conf"
+   ],
+   "ports": [
+    "445:445",
+    "6699:6699"
+   ]
+  }
+ },
+ "vulhub/scrapy/scrapyd-unacc": {
+  "scrapyd": {
+   "image": "vulhub/scrapyd:1.2.1",
+   "ports": [
+    "6800:6800"
+   ]
+  }
+ },
+ "vulhub/shiro/CVE-2010-3863": {
+  "web": {
+   "image": "vulhub/shiro:1.0.0",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/shiro/CVE-2016-4437": {
+  "web": {
+   "image": "vulhub/shiro:1.2.4",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/shiro/CVE-2020-1957": {
+  "web": {
+   "image": "vulhub/shiro:1.5.1",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/showdoc/3.2.5-sqli": {
+  "web": {
+   "image": "vulhub/showdoc:3.2.4",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/showdoc/CNVD-2020-26585": {
+  "web": {
+   "image": "vulhub/showdoc:2.8.2",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/skywalking/8.3.0-sqli": {
+  "oap": {
+   "image": "vulhub/skywalking:8.3.0",
+   "command": "bash bin/oap-service.sh"
+  },
+  "web": {
+   "image": "vulhub/skywalking:8.3.0",
+   "command": "bash bin/web-server.sh",
+   "depends_on": [
+    "oap"
+   ],
+   "ports": [
+    "8080:8080"
+   ],
+   "environment": {
+    "COLLECTOR_RIBBON_LISTOFSERVERS": "oap:12800"
+   }
+  }
+ },
+ "vulhub/solr/CVE-2017-12629-RCE": {
+  "solr": {
+   "image": "vulhub/solr:7.0.1",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/solr/CVE-2017-12629-XXE": {
+  "solr": {
+   "image": "vulhub/solr:7.0.1",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/solr/CVE-2019-0193": {
+  "solr": {
+   "image": "vulhub/solr:8.1.1",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/solr/CVE-2019-17558": {
+  "solr": {
+   "image": "vulhub/solr:8.2.0",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/solr/Remote-Streaming-Fileread": {
+  "solr": {
+   "image": "vulhub/solr:8.8.1",
+   "ports": [
+    "8983:8983",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/spark/unacc": {
+  "master": {
+   "image": "vulhub/spark:2.3.1",
+   "ports": [
+    "8080:8080",
+    "7077:7077",
+    "6066:6066"
+   ]
+  },
+  "slave": {
+   "command": "slave spark://master:7077",
+   "image": "vulhub/spark:2.3.1",
+   "depends_on": [
+    "master"
+   ],
+   "ports": [
+    "8081:8081"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2016-4977": {
+  "spring": {
+   "image": "vulhub/spring-security-oauth2:2.0.8",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2017-4971": {
+  "spring": {
+   "image": "vulhub/spring-webflow:2.4.4",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2017-8046": {
+  "spring": {
+   "image": "vulhub/spring-rest-data:2.6.6",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2018-1270": {
+  "spring": {
+   "image": "vulhub/spring-messaging:5.0.4",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2018-1273": {
+  "spring": {
+   "image": "vulhub/spring-data-commons:2.0.5",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2022-22947": {
+  "spring": {
+   "image": "vulhub/spring-cloud-gateway:3.1.0",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2022-22963": {
+  "spring": {
+   "image": "vulhub/spring-cloud-function:3.2.2",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2022-22965": {
+  "spring": {
+   "image": "vulhub/spring-webmvc:5.3.17",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2022-22978": {
+  "spring-security": {
+   "image": "vulhub/spring-security:5.6.3",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/spring/CVE-2025-41242": {
+  "web": {
+   "image": "vulhub/spring-boot-jetty:3.2.4",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-001": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-005": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-007": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-008": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-009": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-012": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-013": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-015": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-016": {
+  "struts2": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-032": {
+  "struts2": {
+   "image": "vulhub/struts2:2.3.28",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-045": {
+  "struts2": {
+   "image": "vulhub/struts2:2.3.30",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-046": {
+  "struts2": {
+   "image": "vulhub/struts2:2.3.30",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-048": {
+  "struts2": {
+   "image": "vulhub/struts2:2.3.32-showcase",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-052": {
+  "struts2": {
+   "image": "vulhub/struts2:2.5.12-rest-showcase",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-053": {
+  "struts2": {
+   "image": "vulhub/struts2:s2-053",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-057": {
+  "struts2": {
+   "image": "vulhub/struts2:2.3.34-showcase",
+   "volumes": [
+    "./struts-actionchaining.xml:/usr/local/tomcat/webapps/ROOT/WEB-INF/classes/struts-actionchaining.xml"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-059": {
+  "struts2": {
+   "image": "vulhub/struts2:2.5.16",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-061": {
+  "struts2": {
+   "image": "vulhub/struts2:2.5.25",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-066": {
+  "struts2": {
+   "image": "vulhub/struts2:s2-066",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/struts2/s2-067": {
+  "struts2": {
+   "image": "vulhub/struts2:s2-067",
+   "ports": [
+    "8080:8080",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/superset/CVE-2023-27524": {
+  "web": {
+   "image": "vulhub/superset:2.0.1",
+   "ports": [
+    "8088:8088"
+   ]
+  }
+ },
+ "vulhub/superset/CVE-2023-37941": {
+  "web": {
+   "image": "vulhub/superset:2.0.1",
+   "ports": [
+    "8088:8088"
+   ]
+  }
+ },
+ "vulhub/supervisor/CVE-2017-11610": {
+  "web": {
+   "image": "vulhub/supervisor:3.3.2",
+   "ports": [
+    "9001:9001"
+   ]
+  }
+ },
+ "vulhub/teamcity/CVE-2023-42793": {
+  "web": {
+   "image": "vulhub/teamcity:2023.05.3",
+   "ports": [
+    "8111:8111",
+    "5005:5005"
+   ],
+   "environment": [
+    "TEAMCITY_SERVER_OPTS=-Dteamcity.startup.maintenance=false -Dteamcity.firstStart.setupAdmin.enabled=false -Dteamcity.updateCheck.enabled=false -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+   ]
+  }
+ },
+ "vulhub/teamcity/CVE-2024-27198": {
+  "web": {
+   "image": "vulhub/teamcity:2023.11.3",
+   "ports": [
+    "8111:8111",
+    "5005:5005"
+   ],
+   "environment": [
+    "TEAMCITY_SERVER_OPTS=-Dteamcity.startup.maintenance=false -Dteamcity.firstStart.setupAdmin.enabled=false -Dteamcity.updateCheck.enabled=false -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+   ]
+  }
+ },
+ "vulhub/thinkphp/2-rce": {
+  "web": {
+   "image": "vulhub/thinkphp:2.1",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/thinkphp/5-rce": {
+  "web": {
+   "image": "vulhub/thinkphp:5.0.20",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/thinkphp/5.0.23-rce": {
+  "web": {
+   "image": "vulhub/thinkphp:5.0.23",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/thinkphp/in-sqlinjection": {
+  "web": {
+   "image": "vulhub/thinkphp:5.0.9",
+   "depends_on": [
+    "mysql"
+   ],
+   "ports": [
+    "80:80"
+   ],
+   "volumes": [
+    "./www/controller:/var/www/application/index/controller",
+    "./www/model:/var/www/application/index/model",
+    "./www/database.php:/var/www/application/database.php"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5.5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=cat"
+   ],
+   "volumes": [
+    "./www/init.sql:/docker-entrypoint-initdb.d/init.sql"
+   ]
+  }
+ },
+ "vulhub/thinkphp/lang-rce": {
+  "web": {
+   "image": "vulhub/thinkphp:6.0.12",
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/tikiwiki/CVE-2020-15906": {
+  "web": {
+   "image": "vulhub/tikiwiki:21.1",
+   "entrypoint": [
+    "bash",
+    "/docker-entrypoint.sh"
+   ],
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8080:80"
+   ],
+   "environment": [
+    "TIKI_DB_DRIVER=pdo",
+    "TIKI_DB_HOST=db",
+    "TIKI_DB_USER=root",
+    "TIKI_DB_PASS=root",
+    "TIKI_DB_NAME=tikiwiki"
+   ],
+   "volumes": [
+    "./docker-entrypoint.sh:/docker-entrypoint.sh"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=tikiwiki"
+   ],
+   "ports": [
+    "3306:3306"
+   ]
+  }
+ },
+ "vulhub/tomcat/CVE-2017-12615": {
+  "tomcat": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/tomcat/CVE-2020-1938": {
+  "tomcat": {
+   "image": "vulhub/tomcat:9.0.30",
+   "ports": [
+    "8080:8080",
+    "8009:8009"
+   ]
+  }
+ },
+ "vulhub/tomcat/CVE-2025-24813": {
+  "tomcat": {
+   "build": ".",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/tomcat/CVE-2026-34486": {
+  "tomcat": {
+   "image": "vulhub/tomcat:9.0.116",
+   "ports": [
+    "8080:8080",
+    "4000:4000",
+    "5005:5005"
+   ]
+  }
+ },
+ "vulhub/tomcat/tomcat8": {
+  "tomcat": {
+   "image": "vulhub/tomcat:8.0",
+   "volumes": [
+    "./tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml",
+    "./context.xml:/usr/local/tomcat/webapps/manager/META-INF/context.xml",
+    "./context.xml:/usr/local/tomcat/webapps/host-manager/META-INF/context.xml"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/unomi/CVE-2020-13942": {
+  "web": {
+   "image": "vulhub/unomi:1.5.1",
+   "ports": [
+    "9443:9443",
+    "8181:8181"
+   ],
+   "environment": [
+    "UNOMI_ELASTICSEARCH_ADDRESSES=elasticsearch:9200"
+   ],
+   "depends_on": [
+    "elasticsearch"
+   ]
+  },
+  "elasticsearch": {
+   "image": "elasticsearch:7.9.3",
+   "environment": [
+    "cluster.name=contextElasticSearch",
+    "discovery.type=single-node",
+    "ES_JAVA_OPTS=-Xms512m -Xmx512m",
+    "bootstrap.memory_lock=true"
+   ]
+  }
+ },
+ "vulhub/uwsgi/CVE-2018-7490": {
+  "web": {
+   "image": "vulhub/uwsgi-php:2.0.16",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/uwsgi/unacc": {
+  "nginx": {
+   "image": "nginx:1-alpine",
+   "volumes": [
+    "./files/default.conf:/etc/nginx/conf.d/default.conf"
+   ],
+   "depends_on": [
+    "web"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "web": {
+   "image": "vulhub/uwsgi-python:2.0.17",
+   "command": "uwsgi --socket 0.0.0.0:8000 --chdir /usr/src --module server --uid www-data --gid www-data -p 2",
+   "volumes": [
+    "./files/server.py:/usr/src/server.py"
+   ],
+   "ports": [
+    "8000:8000"
+   ]
+  }
+ },
+ "vulhub/v2board/1.6-privilege-escalation": {
+  "web": {
+   "image": "vulhub/v2board:1.6.1",
+   "ports": [
+    "8080:80"
+   ],
+   "depends_on": [
+    "db",
+    "redis"
+   ],
+   "entrypoint": [
+    "bash",
+    "/entrypoint.sh"
+   ],
+   "volumes": [
+    "./entrypoint.sh:/entrypoint.sh"
+   ],
+   "command": "apache2-foreground"
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=v2board"
+   ]
+  },
+  "redis": {
+   "image": "redis:7-alpine"
+  }
+ },
+ "vulhub/vite/CNVD-2022-44615": {
+  "web": {
+   "image": "vulhub/vite:2.1.5",
+   "ports": [
+    "3000:3000"
+   ]
+  }
+ },
+ "vulhub/vite/CVE-2025-30208": {
+  "web": {
+   "image": "vulhub/vite:6.2.2",
+   "ports": [
+    "5173:5173"
+   ]
+  }
+ },
+ "vulhub/vite/CVE-2025-32395": {
+  "web": {
+   "image": "vulhub/vite:6.2.5",
+   "ports": [
+    "5173:5173"
+   ]
+  }
+ },
+ "vulhub/vite/CVE-2026-39363": {
+  "web": {
+   "image": "vulhub/vite:7.3.1",
+   "ports": [
+    "5173:5173"
+   ]
+  }
+ },
+ "vulhub/weblogic/CVE-2017-10271": {
+  "weblogic": {
+   "image": "vulhub/weblogic:10.3.6.0-2017",
+   "ports": [
+    "7001:7001"
+   ]
+  }
+ },
+ "vulhub/weblogic/CVE-2018-2628": {
+  "weblogic": {
+   "image": "vulhub/weblogic:10.3.6.0-2017",
+   "ports": [
+    "7001:7001"
+   ]
+  }
+ },
+ "vulhub/weblogic/CVE-2018-2894": {
+  "weblogic": {
+   "image": "vulhub/weblogic:12.2.1.3-2018",
+   "ports": [
+    "7001:7001"
+   ]
+  }
+ },
+ "vulhub/weblogic/CVE-2020-14882": {
+  "weblogic": {
+   "image": "vulhub/weblogic:12.2.1.3-2018",
+   "ports": [
+    "7001:7001"
+   ]
+  }
+ },
+ "vulhub/weblogic/CVE-2023-21839": {
+  "weblogic": {
+   "image": "vulhub/weblogic:12.2.1.3-2018",
+   "ports": [
+    "7001:7001"
+   ]
+  }
+ },
+ "vulhub/weblogic/ssrf": {
+  "weblogic": {
+   "image": "vulhub/weblogic:10.3.6.0-2017",
+   "depends_on": [
+    "redis"
+   ],
+   "ports": [
+    "7001:7001"
+   ]
+  },
+  "redis": {
+   "image": "vulhub/baselinux:centos-6"
+  }
+ },
+ "vulhub/weblogic/weak_password": {
+  "weblogic": {
+   "image": "vulhub/weblogic:10.3.6.0-2017",
+   "volumes": [
+    "./web:/root/Oracle/Middleware/user_projects/domains/base_domain/autodeploy"
+   ],
+   "ports": [
+    "7001:7001",
+    "5556:5556"
+   ]
+  }
+ },
+ "vulhub/webmin/CVE-2019-15107": {
+  "web": {
+   "image": "vulhub/webmin:1.910",
+   "ports": [
+    "10000:10000"
+   ]
+  }
+ },
+ "vulhub/wordpress/CVE-2026-63030": {
+  "web": {
+   "image": "vulhub/wordpress:6.9.4",
+   "depends_on": [
+    "db"
+   ],
+   "environment": {
+    "WORDPRESS_DB_HOST": "db",
+    "WORDPRESS_DB_USER": "root",
+    "WORDPRESS_DB_PASSWORD": "root",
+    "WORDPRESS_DB_NAME": "wordpress",
+    "WORDPRESS_CONFIG_EXTRA": "define( 'AUTOMATIC_UPDATER_DISABLED', true );\ndefine( 'WP_AUTO_UPDATE_CORE', false );\n"
+   },
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "db": {
+   "image": "mysql:8.0",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=wordpress"
+   ]
+  }
+ },
+ "vulhub/wordpress/pwnscriptum": {
+  "web": {
+   "image": "vulhub/wordpress:4.6",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "WORDPRESS_DB_HOST=mysql:3306",
+    "WORDPRESS_DB_USER=root",
+    "WORDPRESS_DB_PASSWORD=root",
+    "WORDPRESS_DB_NAME=wordpress"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root"
+   ]
+  }
+ },
+ "vulhub/xstream/CVE-2021-21351": {
+  "web": {
+   "image": "vulhub/xstream:1.4.15",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/xstream/CVE-2021-29505": {
+  "web": {
+   "image": "vulhub/xstream:1.4.16",
+   "ports": [
+    "8080:8080"
+   ]
+  }
+ },
+ "vulhub/xxl-job/unacc": {
+  "admin": {
+   "image": "vulhub/xxl-job:2.2.0-admin",
+   "depends_on": [
+    "db"
+   ],
+   "ports": [
+    "8080:8080"
+   ]
+  },
+  "executor": {
+   "image": "vulhub/xxl-job:2.2.0-executor",
+   "depends_on": [
+    "admin"
+   ],
+   "ports": [
+    "9999:9999"
+   ]
+  },
+  "db": {
+   "image": "mysql:5.7",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root"
+   ]
+  }
+ },
+ "vulhub/yapi/mongodb-inj": {
+  "mongo": {
+   "image": "mongo:5.0.6",
+   "environment": {
+    "MONGO_INITDB_ROOT_USERNAME": "root",
+    "MONGO_INITDB_ROOT_PASSWORD": "root",
+    "MONGO_INITDB_DATABASE": "yapi"
+   }
+  },
+  "web": {
+   "image": "vulhub/yapi:1.10.2",
+   "ports": [
+    "3000:3000"
+   ],
+   "volumes": [
+    "./config.json:/usr/config.json",
+    "./initdb.js:/usr/src/initdb.js"
+   ],
+   "environment": [
+    "MONGO_ADDR=mongo:27017"
+   ]
+  }
+ },
+ "vulhub/yapi/unacc": {
+  "mongo": {
+   "image": "mongo:5.0.6",
+   "environment": {
+    "MONGO_INITDB_ROOT_USERNAME": "root",
+    "MONGO_INITDB_ROOT_PASSWORD": "root",
+    "MONGO_INITDB_DATABASE": "yapi"
+   }
+  },
+  "web": {
+   "image": "vulhub/yapi:1.9.2",
+   "ports": [
+    "3000:3000"
+   ],
+   "volumes": [
+    "./config.json:/usr/config.json"
+   ],
+   "environment": [
+    "MONGO_ADDR=mongo:27017"
+   ]
+  }
+ },
+ "vulhub/zabbix/CVE-2016-10134": {
+  "server": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "server",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ]
+  },
+  "agent": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "agent",
+   "depends_on": [
+    "mysql",
+    "server"
+   ],
+   "environment": [
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_HOST_ACT=server",
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=zabbix"
+   ],
+   "volumes": [
+    "./database/:/docker-entrypoint-initdb.d/"
+   ]
+  },
+  "web": {
+   "image": "vulhub/zabbix:3.0.3-web",
+   "depends_on": [
+    "server",
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix",
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_PORT=10051"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/zabbix/CVE-2017-2824": {
+  "server": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "server",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ],
+   "ports": [
+    "10051:10051"
+   ]
+  },
+  "agent": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "agent",
+   "depends_on": [
+    "mysql",
+    "server"
+   ],
+   "environment": [
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_HOST_ACT=server",
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=zabbix"
+   ],
+   "volumes": [
+    "./database/:/docker-entrypoint-initdb.d/"
+   ]
+  },
+  "web": {
+   "image": "vulhub/zabbix:3.0.3-web",
+   "depends_on": [
+    "server",
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix",
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_PORT=10051"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ },
+ "vulhub/zabbix/CVE-2020-11800": {
+  "server": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "server",
+   "depends_on": [
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ],
+   "ports": [
+    "10051:10051"
+   ]
+  },
+  "agent": {
+   "image": "vulhub/zabbix:3.0.3-server",
+   "command": "agent",
+   "depends_on": [
+    "mysql",
+    "server"
+   ],
+   "environment": [
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_HOST_ACT=server",
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix"
+   ]
+  },
+  "mysql": {
+   "image": "mysql:5",
+   "environment": [
+    "MYSQL_ROOT_PASSWORD=root",
+    "MYSQL_DATABASE=zabbix"
+   ],
+   "volumes": [
+    "./database/:/docker-entrypoint-initdb.d/"
+   ]
+  },
+  "web": {
+   "image": "vulhub/zabbix:3.0.3-web",
+   "depends_on": [
+    "server",
+    "mysql"
+   ],
+   "environment": [
+    "DATABASE_HOST=mysql",
+    "DATABASE_PORT=3306",
+    "DATABASE_USER=root",
+    "DATABASE_PASS=root",
+    "DATABASE_NAME=zabbix",
+    "ZBX_SRV_HOST=server",
+    "ZBX_SRV_PORT=10051"
+   ],
+   "ports": [
+    "8080:80"
+   ]
+  }
+ }
+}

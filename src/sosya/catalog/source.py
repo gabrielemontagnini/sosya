@@ -1,6 +1,7 @@
 """Development only: fetch the Vulhub catalog at the pinned commit.
 
-The clone is blobless, shallow and sparse: it holds `environments.toml` and, for each
+The clone is blobless, shallow and sparse: it holds `environments.toml`, Vulhub's `LICENSE`
+(shipped with the package) and, for each
 environment, only its compose file, English README and Dockerfiles.
 """
 
@@ -12,6 +13,7 @@ from sosya.catalog import VULHUB_COMMIT, VULHUB_URL
 
 DEFAULT_CHECKOUT = Path(".cache/vulhub")
 ENV_FILES = ("docker-compose.yml", "README.md", "Dockerfile*")
+TOP_FILES = ("environments.toml", "LICENSE")
 
 
 class SourceError(RuntimeError):
@@ -37,7 +39,7 @@ def head(checkout: Path) -> str | None:
 
 
 def sparse_patterns(paths: list[str]) -> list[str]:
-    patterns = ["/environments.toml"]
+    patterns = ["/environments.toml", "/LICENSE"]
     for path in sorted(paths):
         patterns.extend(f"/{path}/{name}" for name in ENV_FILES)
     return patterns
@@ -45,7 +47,7 @@ def sparse_patterns(paths: list[str]) -> list[str]:
 
 def sync(checkout: Path = DEFAULT_CHECKOUT, commit: str = VULHUB_COMMIT) -> Path:
     """Make `checkout` a sparse checkout of Vulhub at `commit`. Idempotent."""
-    if head(checkout) == commit and (checkout / "environments.toml").is_file():
+    if head(checkout) == commit and all((checkout / name).is_file() for name in TOP_FILES):
         return checkout
     checkout.mkdir(parents=True, exist_ok=True)
     if not (checkout / ".git").is_dir():
