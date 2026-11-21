@@ -277,3 +277,115 @@ def test_down_keeps_the_attempts(tmp_path: Path) -> None:
 
 def test_build_module_has_three_attempts() -> None:
     assert build_module.MAX_ATTEMPTS == 3
+
+
+# --- a plan the user edited -------------------------------------------------------------------
+
+
+def _edited(**changes: Any):
+    from sosya.spec import parse_range
+
+    data = {
+        "apiVersion": "sosya/v1",
+        "name": "dmz-redis",
+        "networks": ["dmz"],
+        "hosts": [
+            {"name": "web", "component": "vulhub/tomcat/CVE-2017-12615", "networks": ["dmz"]}
+        ],
+        "attacker": {"networks": ["dmz"]},
+    }
+    data.update(changes)
+    return parse_range(data)
+
+
+def test_an_edited_plan_is_the_one_that_starts(tmp_path: Path) -> None:
+    fakes = Fakes(tmp_path)
+    edited = _edited()
+    result = fakes.run(FakeLLM(QUERIES, plan()), confirm_plan=lambda spec, r: edited)
+    assert result.outcome == "green", result.message
+    started = fakes.ups[0].read_text()
+    assert "tomcat/CVE-2017-12615" in started and "redis/4-unacc" not in started
+    assert "tomcat/CVE-2017-12615" in result.range_file.read_text()
+
+
+def test_a_renamed_edit_gets_a_unique_name(tmp_path: Path) -> None:
+    fakes = Fakes(tmp_path)
+    (fakes.ranges / "mine").mkdir(parents=True)
+    edited = _edited(name="mine")
+    result = fakes.run(FakeLLM(QUERIES, plan()), confirm_plan=lambda spec, r: edited)
+    assert result.outcome == "green"
+    assert result.name == "mine-2"
+    assert ("warn", "a range named mine exists: this one is mine-2") in fakes.reports
+
+
+def test_a_live_failure_after_an_edit_sends_the_edited_lab(tmp_path: Path) -> None:
+    fakes = Fakes(tmp_path, checks=[BAD, GOOD])
+    edited = _edited()
+    repaired = plan(
+        networks=["dmz"],
+        hosts=[
+            {
+                "name": "web",
+                "component": "vulhub/tomcat/CVE-2017-12615",
+                "networks": ["dmz"],
+                "service": None,
+            }
+        ],
+    )
+    llm = FakeLLM(QUERIES, plan(), repaired)
+    result = fakes.run(llm, confirm_plan=lambda spec, r: edited)
+    assert result.outcome == "green", result.message
+    request = llm.calls[-1]["messages"][-1].content
+    assert request.startswith("The user edited your lab before it started")
+    assert "tomcat/CVE-2017-12615" in request and "live check failed" in request
+    # A component outside the candidates is fine once the user chose it.
+    assert [a.result for a in result.attempts] == ["live", "green"]
+
+
+def _dangerous_edit():
+    return _edited(
+        hosts=[{"name": "dock", "component": "vulhub/docker/unauthorized-rce", "networks": ["dmz"]}]
+    )
+
+
+def test_a_dangerous_edit_stops_without_the_flag(tmp_path: Path) -> None:
+    fakes = Fakes(tmp_path)
+    result = fakes.run(FakeLLM(QUERIES, plan()), confirm_plan=lambda s, r: _dangerous_edit())
+    assert result.outcome == "dangerous"
+    assert result.message == build_module.DANGEROUS_MESSAGE
+    assert result.dangerous and fakes.ups == []
+
+
+@pytest.mark.parametrize("confirmed", [True, False])
+def test_a_dangerous_edit_with_the_flag_needs_a_confirmation(
+    tmp_path: Path, confirmed: bool
+) -> None:
+    fakes = Fakes(tmp_path)
+    asked: list[list[str]] = []
+
+    def confirm_privileged(lines: list[str]) -> bool:
+        asked.append(lines)
+        return confirmed
+
+    result = fakes.run(
+        FakeLLM(QUERIES, plan()),
+        confirm_plan=lambda s, r: _dangerous_edit(),
+        confirm_privileged=confirm_privileged,
+        allow_privileged=True,
+    )
+    assert asked and "host-level" in asked[0][0]
+    assert result.outcome == ("green" if confirmed else "cancelled")
+    assert bool(fakes.ups) is confirmed
+
+
+def test_check_edited_reports_yaml_schema_and_catalog_errors(tmp_path: Path) -> None:
+    path = tmp_path / "edit.yaml"
+    path.write_text("name: [unclosed\n")
+    assert "not valid YAML" in build_module.check_edited(path).errors[0]
+    path.write_text(_edited().to_yaml().replace("tomcat/CVE-2017-12615", "tomcat/nope"))
+    checked = build_module.check_edited(path)
+    assert checked.spec is None and "not in the catalog" in checked.errors[0]
+    path.write_text(_dangerous_edit().to_yaml())
+    checked = build_module.check_edited(path)
+    assert checked.spec is not None and not checked.errors
+    assert any("host-level" in w for w in checked.warnings)

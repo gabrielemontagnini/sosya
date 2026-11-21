@@ -315,3 +315,70 @@ def test_new_needs_docker_first(monkeypatch: pytest.MonkeyPatch) -> None:
     result = runner.invoke(app, ["new", "x"])
     assert result.exit_code == 1
     assert "Docker daemon is not reachable" in result.output
+
+
+def _editor(monkeypatch: pytest.MonkeyPatch, *edits):
+    """Replace click.edit: each call applies the next function to the file's text."""
+    import click
+
+    from sosya import engine
+
+    monkeypatch.setattr(engine, "docker_platform", lambda: "linux/amd64")
+    pending = list(edits)
+    seen: list[str] = []
+
+    def edit(*, filename: str) -> None:
+        path = Path(filename)
+        seen.append(path.read_text())
+        path.write_text(pending.pop(0)(path.read_text()))
+
+    monkeypatch.setattr(click, "edit", edit)
+    return seen
+
+
+def test_new_starts_the_edited_plan(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    seen = fake_new(monkeypatch)
+    _editor(monkeypatch, lambda text: text.replace("struts2/s2-045", "tomcat/CVE-2017-12615"))
+    result = runner.invoke(app, ["new", "a struts2 lab"], input="e\ny\n")
+    assert result.exit_code == 0, result.output
+    assert "[Y/n/edit]" in result.output
+    assert seen["confirmed"].hosts[0].component == "vulhub/tomcat/CVE-2017-12615"
+    assert "tomcat/CVE-2017-12615" in result.output  # the preview shows the edit
+
+
+def test_new_reopens_the_editor_until_the_range_is_valid(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    seen = fake_new(monkeypatch)
+    opened = _editor(
+        monkeypatch,
+        lambda text: text.replace("struts2/s2-045", "struts2/nope"),
+        lambda text: text.replace("struts2/nope", "struts2/s2-048"),
+    )
+    result = runner.invoke(app, ["new", "a struts2 lab"], input="edit\n\n")
+    assert result.exit_code == 0, result.output
+    assert "not in the catalog" in result.output
+    assert len(opened) == 2
+    assert opened[1].startswith("# sosya: ")  # the errors stay in sight in the editor
+    assert seen["confirmed"].hosts[0].component == "vulhub/struts2/s2-048"
+
+
+def test_new_discards_an_emptied_edit(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    seen = fake_new(monkeypatch)
+    _editor(monkeypatch, lambda text: "")
+    result = runner.invoke(app, ["new", "a struts2 lab"], input="e\nmaybe\ny\n")
+    assert result.exit_code == 0, result.output
+    assert "edits discarded" in result.output
+    assert seen["confirmed"] is True  # the original plan, unchanged
+
+
+def test_new_yes_never_opens_the_editor(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    seen = fake_new(monkeypatch)
+    opened = _editor(monkeypatch)
+    result = runner.invoke(app, ["new", "a struts2 lab", "--yes"])
+    assert result.exit_code == 0
+    assert opened == [] and seen["confirmed"] is True

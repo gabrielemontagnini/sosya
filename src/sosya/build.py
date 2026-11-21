@@ -22,18 +22,23 @@ from sosya import engine, runtime
 from sosya.catalog.loader import load_index, load_services
 from sosya.catalog.models import CatalogIndex
 from sosya.llm.base import LLM, LLMError, RefusalError
-from sosya.planner import Candidate, Draft, Planner
+from sosya.planner import Candidate, Conversation, Draft, Planner
 from sosya.render import project_name
 from sosya.runtime import HostEnvironmentError, RangeError, Reporter, Workspace
 from sosya.runtime import state as state_store
 from sosya.runtime.docker import Docker
-from sosya.spec import RANGE_FILE, RangeSpec
+from sosya.spec import RANGE_FILE, Issue, RangeSpec, SpecError, check_catalog, load_range
 from sosya.validate import Check, failures, validate
 
 MAX_ATTEMPTS = 3
 LOG_LINES = 30
 RANGES = Path("ranges")
 NAME_LIMIT = 40
+
+DANGEROUS_MESSAGE = (
+    "the plan needs environments with host-level privileges: run again "
+    "with --allow-privileged to start it after a confirmation"
+)
 
 Outcome = Literal["green", "failed", "refused", "environment", "dangerous", "cancelled"]
 
@@ -140,6 +145,45 @@ def _save_attempt(
     return folder
 
 
+def _is_dangerous(issue: Issue) -> bool:
+    return issue.level == "warning" and "host-level" in issue.message
+
+
+@dataclass(frozen=True)
+class EditCheck:
+    spec: RangeSpec | None
+    errors: list[str]
+    warnings: list[str]
+
+
+def check_edited(
+    path: Path,
+    *,
+    index: CatalogIndex | None = None,
+    host_platform: str | None = None,
+    services_of: Callable[[str], dict] = load_services,
+) -> EditCheck:
+    """Check a range the user edited by hand: the same checks as `sosya up`, any catalog id.
+
+    Dangerous components are warnings here: the build decides about them (`--allow-privileged`
+    and a confirmation), exactly as for a draft of the LLM.
+    """
+    try:
+        spec = load_range(path)
+    except SpecError as exc:
+        return EditCheck(None, [str(exc)], [])
+    issues = check_catalog(
+        spec,
+        index or load_index(),
+        host_platform=host_platform,
+        allow_privileged=True,
+        services_of=services_of,
+    )
+    errors = [str(issue) for issue in issues if issue.level == "error"]
+    warnings = [str(issue) for issue in issues if issue.level == "warning"]
+    return EditCheck(None if errors else spec, errors, warnings)
+
+
 def _check_line(check: Check) -> str:
     return f"live check failed: {check.group} {check.target}: {check.detail}"
 
@@ -160,7 +204,9 @@ def build(
     *,
     report: Reporter,
     phase: Callable[[str, str], None],
-    confirm_plan: Callable[[RangeSpec, BuildResult], bool] = lambda spec, result: True,
+    confirm_plan: Callable[[RangeSpec, BuildResult], bool | RangeSpec] = (
+        lambda spec, result: True
+    ),
     confirm_privileged: Callable[[list[str]], bool] = lambda lines: False,
     allow_privileged: bool = False,
     effort: str | None = None,
@@ -248,18 +294,31 @@ def build(
                 ),
             )
 
-            if draft.dangerous:
-                result.dangerous = [str(issue) for issue in draft.dangerous]
+            dangerous = [str(issue) for issue in draft.dangerous]
+            if dangerous:
+                result.dangerous = dangerous
                 if not allow_privileged:
-                    return finish(
-                        "dangerous",
-                        "the plan needs environments with host-level privileges: run again "
-                        "with --allow-privileged to start it after a confirmation",
-                    )
+                    return finish("dangerous", DANGEROUS_MESSAGE)
             if not confirmed:
-                if not confirm_plan(spec, result):
+                answer = confirm_plan(spec, result)
+                if not answer:
                     return finish("cancelled", "cancelled: nothing was started")
-                if draft.dangerous and not confirm_privileged(result.dangerous):
+                if isinstance(answer, RangeSpec):
+                    spec = _adopt(answer, result, conversation, report, workspace, docker, ranges)
+                    name = result.name
+                    components = [host.component for host in spec.hosts]
+                    issues = check_catalog(
+                        spec,
+                        index,
+                        host_platform=host_platform,
+                        allow_privileged=True,
+                        services_of=load_services,
+                    )
+                    dangerous = [str(issue) for issue in issues if _is_dangerous(issue)]
+                    result.dangerous = dangerous
+                    if dangerous and not allow_privileged:
+                        return finish("dangerous", DANGEROUS_MESSAGE)
+                if dangerous and not confirm_privileged(dangerous):
                     return finish("cancelled", "cancelled: nothing was started")
                 confirmed = True
 
@@ -334,6 +393,27 @@ def build(
         return finish("environment", str(exc))
     except HostEnvironmentError as exc:
         return finish("environment", str(exc))
+
+
+def _adopt(
+    edited: RangeSpec,
+    result: BuildResult,
+    conversation: Conversation,
+    report: Reporter,
+    workspace: Workspace,
+    docker: Docker,
+    ranges: Path,
+) -> RangeSpec:
+    """Start from the range the user edited; a new name must still be unique."""
+    if edited.name != result.name:
+        name = unique_name(edited.name, workspace=workspace, docker=docker, ranges=ranges)
+        if name != edited.name:
+            report("warn", f"a range named {edited.name} exists: this one is {name}")
+            edited = edited.model_copy(update={"name": name})
+        result.name = name
+    conversation.adopt(edited)
+    result.spec = edited
+    return edited
 
 
 def _stop(down: Callable[..., None], name: str, workspace: Workspace, docker: Docker) -> None:

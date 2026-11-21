@@ -2,8 +2,10 @@
 
 from collections.abc import Sequence
 
+from sosya.llm.http import dumps
 from sosya.planner.candidates import Candidate
 from sosya.planner.schema import MAX_QUERIES
+from sosya.spec import RangeSpec
 
 QUERY_SYSTEM = f"""\
 You help build isolated training labs from a fixed catalog of documented, vulnerable Docker
@@ -61,9 +63,40 @@ def plan_request(sentence: str, candidates: Sequence[Candidate]) -> str:
     )
 
 
-def repair_request(problems: Sequence[str]) -> str:
+def lab_json(spec: RangeSpec) -> str:
+    """A range in the JSON shape the LLM writes (no flags: they are not its choice)."""
+    return dumps(
+        {
+            "name": spec.name,
+            "description": spec.description,
+            "networks": list(spec.networks),
+            "hosts": [
+                {
+                    "name": host.name,
+                    "component": host.component,
+                    "networks": list(host.networks),
+                    "service": host.service,
+                }
+                for host in spec.hosts
+            ],
+            "attacker": {
+                "networks": list(spec.attacker.networks),
+                "internet": spec.attacker.internet,
+            },
+            "objectives": list(spec.objectives),
+        }
+    )
+
+
+def repair_request(problems: Sequence[str], *, edited: RangeSpec | None = None) -> str:
     listed = "\n".join(f"- {problem}" for problem in problems)
-    return (
+    before = ""
+    if edited is not None:
+        before = (
+            "The user edited your lab before it started; this is the lab that ran:\n"
+            f"{lab_json(edited)}\n\n"
+        )
+    return before + (
         "The lab you wrote did not pass Sosya's checks. Write the whole lab again, fixing these "
         "problems. Keep the same name. You may replace a component with another candidate.\n"
         f"{listed}"

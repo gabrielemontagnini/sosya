@@ -33,10 +33,20 @@ class Conversation:
     messages: list[Message] = field(default_factory=list)
     name: str | None = None
     """Fixed by the first draft: later drafts keep it."""
+    extra_ids: set[str] = field(default_factory=set)
+    """Components the user chose by editing the plan: repairs may keep them."""
+    edited: RangeSpec | None = None
+    """A range the user edited, not yet shown to the LLM: the next repair request carries it."""
 
     @property
     def ids(self) -> set[str]:
-        return {c.entry.id for c in self.candidates}
+        return {c.entry.id for c in self.candidates} | self.extra_ids
+
+    def adopt(self, spec: RangeSpec) -> None:
+        """The user edited the plan: repairs start from `spec`, not from the last draft."""
+        self.name = spec.name
+        self.extra_ids |= {host.component for host in spec.hosts}
+        self.edited = spec
 
 
 @dataclass(frozen=True)
@@ -147,7 +157,9 @@ class Planner:
         return spec, issues
 
     def repair(self, conversation: Conversation, problems: Sequence[str]) -> Draft:
-        conversation.messages.append(Message("user", prompt.repair_request(problems)))
+        edited, conversation.edited = conversation.edited, None
+        request = prompt.repair_request(problems, edited=edited)
+        conversation.messages.append(Message("user", request))
         return self.draft(conversation)
 
 

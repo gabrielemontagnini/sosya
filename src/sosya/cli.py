@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 from typing import Annotated, NoReturn
 
+import click
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -128,14 +129,14 @@ def new(
         console.print(f"{_MARKS['ok']} {name:<{_PHASE_WIDTH}} {text}", highlight=False)
         status.update(_NEXT.get(name, "working"))
 
-    def ask(spec, result) -> bool:
+    def ask(spec, result):
         if yes:
             return True
         status.stop()
-        console.print(_plan_table(spec, result))
-        answer = typer.confirm("Start this range?", default=True)
-        status.start()
-        return answer
+        try:
+            return _preview(spec, result)
+        finally:
+            status.start()
 
     def ask_privileged(lines: list[str]) -> bool:
         status.stop()
@@ -168,6 +169,62 @@ def new(
     _report("ok", f"ready {result.name} in {total}")
     console.print(f"     sosya shell {result.name}", highlight=False)
     console.print(f"     scenario: {result.scenario_file}", highlight=False)
+
+
+_CHOICES = {"": "y", "y": "y", "yes": "y", "n": "n", "no": "n", "e": "e", "edit": "e"}
+_EDIT_NOTE = "# sosya: "
+
+
+def _preview(spec, result):
+    """Show the plan and ask: True starts it, False cancels, a RangeSpec starts the edited one."""
+    current, edited = spec, False
+    while True:
+        console.print(_plan_table(current, result))
+        choice = None
+        while choice is None:
+            answer = typer.prompt("Start this range? [Y/n/edit]", default="", show_default=False)
+            choice = _CHOICES.get(answer.strip().lower())
+        if choice == "y":
+            return current if edited else True
+        if choice == "n":
+            return False
+        changed = _edit(current)
+        if changed is not None:
+            current, edited = changed, True
+
+
+def _edit(spec):
+    """Edit the range in $VISUAL or $EDITOR until it passes the checks. None: edits discarded.
+
+    Errors are printed and also written at the top of the file as comments, so they stay in
+    sight inside the editor. An emptied file throws the edits away.
+    """
+    from sosya import build as builder
+    from sosya import engine
+
+    path = runtime.Workspace().range_dir(spec.name) / "edit.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(spec.to_yaml(), encoding="utf-8")
+    platform = engine.docker_platform()
+    while True:
+        click.edit(filename=str(path))
+        lines = path.read_text(encoding="utf-8").splitlines()
+        body = "\n".join(line for line in lines if not line.startswith(_EDIT_NOTE)) + "\n"
+        if not body.strip():
+            _report("info", "the file is empty: edits discarded")
+            return None
+        path.write_text(body, encoding="utf-8")
+        checked = builder.check_edited(path, host_platform=platform)
+        if checked.spec is not None:
+            for warning in checked.warnings:
+                _report("warn", warning)
+            return checked.spec
+        errors = [line for error in checked.errors for line in error.splitlines() if line.strip()]
+        for error in errors:
+            _report("fail", error.strip())
+        notes = [f"{_EDIT_NOTE}{error.strip()}" for error in errors]
+        notes.append(f"{_EDIT_NOTE}fix the errors above, or empty the file to discard the edits")
+        path.write_text("\n".join(notes) + "\n" + body, encoding="utf-8")
 
 
 _MARKS = {

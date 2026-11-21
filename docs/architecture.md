@@ -372,6 +372,17 @@ together:
 3. validate it; failed checks go back to the LLM with the last 30 log lines of every service of
    the hosts involved. Warnings never go back.
 
+Before the first start, `sosya new` shows the plan and asks `Start this range? [Y/n/edit]`
+(`--yes` skips it). With `e` the plan opens as `range.yaml` in `$VISUAL` or `$EDITOR`. On save it
+goes through `load_range` and `check_catalog`, the checks of `sosya up`, with any catalog id
+allowed. If it has errors, they are printed, written at the top of the file as `# sosya:`
+comments, and the editor opens again. An emptied file discards the edits. Otherwise the preview
+comes back with the edited range, and that is the one that starts. A dangerous component in an
+edit follows the draft rules: without `--allow-privileged` the build stops with the same message,
+and with it a confirmation is still needed. If the edited range fails live, the next repair
+request starts with the edited lab, so the LLM repairs what actually ran. The components the
+user chose stay allowed in the repairs.
+
 Every failed attempt is stopped before the next one and kept in
 `.sosya/ranges/<name>/attempts/<n>/` (`range.yaml` or `draft.json`, `issues.json`, `logs.txt`,
 `docker-compose.yml`). `sosya down` deletes everything in the range directory except
