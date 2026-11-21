@@ -275,6 +275,25 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   the endpoint lists and stops with the list when there are several.
 - No model id appears in code, tests, docs or prompts; tests use fake ids.
 
+## Planner
+
+1. **Queries.** The LLM turns the sentence into 1 to 8 catalog keywords (`QueryPlan`), always at
+   low effort: it is a simple task, and its latency adds to every `sosya new`.
+2. **Candidates.** `sosya.catalog.search` ranks entries for the sentence and the keywords with
+   Reciprocal Rank Fusion. From the ranking, at most 25 candidates are kept:
+   - entries whose images cannot run on the engine's platform, or whose platform is unknown,
+     are dropped; entries that run only under emulation stay, marked as such;
+   - dangerous entries are dropped unless the user's own sentence names them by path or CVE
+     id. A keyword the LLM made up never counts.
+3. **Draft.** The LLM writes a `PlanDraft` from the candidates, which are listed in the prompt.
+   The schema is fixed: there is no enum of candidate ids, and no `flag` (flag paths are not the
+   LLM's choice). The draft becomes a `range.yaml` mapping and goes through the same checks as
+   a hand-written file: the range schema, `check_catalog`, and "the component is one of the
+   candidates". Each failure is an `Issue` that goes back to the LLM.
+4. **Name.** The first draft fixes the range name; later drafts keep it.
+5. **Dangerous entries** in a draft are not repaired: the build stops on them (see
+   [Services with host-level privileges](#services-with-host-level-privileges)).
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
