@@ -11,10 +11,10 @@ from typing import Any
 import yaml
 
 from sosya.catalog.models import DangerReason, Entry, LocalFile, Port, Service
+from sosya.catalog.rules import RuleError, check_service, interpolate
 
 SUMMARY_MAX = 500
 COLONS = ":\uff1a"  # ASCII and full-width colon
-HOST_NAMESPACES = ("network_mode", "pid", "ipc")
 _URL = re.compile(r"https?://[^\s<>()\[\]]+")
 _MD_LINK = re.compile(r"!?\[([^\]]*)\]\(([^)]*)\)")
 _ANGLE_URL = re.compile(r"<(https?://[^>]+)>")
@@ -108,20 +108,28 @@ def local_files(name: str, service: Mapping[str, Any]) -> list[LocalFile]:
     return files
 
 
-def danger_reasons(name: str, service: Mapping[str, Any]) -> list[DangerReason]:
-    """Host-level privileges, with the rules of docs/architecture.md."""
-    reasons: list[str] = []
-    if service.get("privileged") is True:
-        reasons.append("privileged")
-    reasons.extend(f"cap_add: {cap}" for cap in service.get("cap_add", []))
-    reasons.extend(f"{key}: host" for key in HOST_NAMESPACES if service.get(key) == "host")
-    for volume in service.get("volumes", []):
-        source, _ = _volume_source(volume)
-        if source and source.rstrip("/").endswith("docker.sock"):
-            reasons.append("docker.sock mount")
-    if service.get("devices"):
-        reasons.append("devices")
-    return [DangerReason(service=name, reason=reason) for reason in reasons]
+def danger_reasons(
+    name: str, service: Mapping[str, Any], siblings: frozenset[str] = frozenset()
+) -> list[DangerReason]:
+    """Host-level privileges, with the shared rules of `sosya.catalog.rules`."""
+    check = check_service(service, siblings)
+    return [DangerReason(service=name, reason=reason) for reason in check.dangerous]
+
+
+def check_supported(path: str, services: Mapping[str, Any]) -> None:
+    """Fail the catalog build on anything the renderer would refuse."""
+    problems: list[str] = []
+    for name, service in services.items():
+        siblings = frozenset(services) - {name}
+        problems.extend(
+            f"{name}: {issue}" for issue in check_service(service, siblings).unsupported
+        )
+        try:
+            interpolate(service)
+        except RuleError as exc:
+            problems.append(f"{name}: {exc}")
+    if problems:
+        raise ParseError(f"vulhub/{path}: " + "; ".join(problems))
 
 
 # --- Dockerfiles -----------------------------------------------------------------------------
@@ -238,6 +246,7 @@ def parse_environment(
     compose = yaml.safe_load(compose_text)
     if not isinstance(compose, Mapping) or not isinstance(compose.get("services"), Mapping):
         raise ParseError(f"{path}: docker-compose.yml has no services")
+    check_supported(path, compose["services"])
     services: list[Service] = []
     files: list[LocalFile] = []
     dangerous: list[DangerReason] = []
@@ -260,7 +269,8 @@ def parse_environment(
             )
         )
         files.extend(local_files(name, service))
-        dangerous.extend(danger_reasons(name, service))
+        siblings = frozenset(compose["services"]) - {name}
+        dangerous.extend(danger_reasons(name, service, siblings))
     title, summary, references = parse_readme(readme_text)
     title = title or str(meta.get("name", path))
     cves = sorted({cve.upper() for cve in meta.get("cve", [])})

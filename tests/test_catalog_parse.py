@@ -129,17 +129,36 @@ def test_danger_reasons_follow_the_architecture_rules() -> None:
     assert reasons == [
         "privileged",
         "cap_add: NET_ADMIN",
+        "devices",
         "network_mode: host",
         "pid: host",
         "ipc: host",
         "docker.sock mount",
-        "devices",
     ]
 
 
 def test_ordinary_service_is_not_dangerous() -> None:
-    service = {"image": "redis", "network_mode": "bridge", "privileged": False}
+    service = {"image": "redis", "privileged": False, "volumes": ["./conf:/etc/conf", "/anon"]}
     assert danger_reasons("cache", service) == []
+
+
+def test_network_mode_is_dangerous_unless_it_joins_a_sibling() -> None:
+    assert danger_reasons("app", {"network_mode": "service:db"}, frozenset({"db"})) == []
+    for mode in ("bridge", "host", "service:other", "container:abc"):
+        reasons = danger_reasons("app", {"network_mode": mode}, frozenset({"db"}))
+        assert [r.reason for r in reasons] == [f"network_mode: {mode}"]
+
+
+def test_unsupported_key_fails_the_build_with_the_environment_id() -> None:
+    compose = "services:\n  web:\n    image: a\n    volumes_from: [db]\n"
+    with pytest.raises(ParseError, match=r"vulhub/a/b: web: key 'volumes_from'"):
+        parse_environment({"path": "a/b"}, compose, "", {}.get)
+
+
+def test_interpolation_without_default_fails_the_build() -> None:
+    compose = "services:\n  web:\n    image: a\n    user: ${UID}\n"
+    with pytest.raises(ParseError, match="has no default"):
+        parse_environment({"path": "a/b"}, compose, "", {}.get)
 
 
 @pytest.mark.parametrize(
