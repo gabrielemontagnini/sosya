@@ -13,6 +13,7 @@ htmlcov/
 # Sosya runtime data
 ranges/
 .sosya/
+.cache/
 
 # Editors and OS
 .DS_Store
