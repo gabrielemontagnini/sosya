@@ -507,7 +507,10 @@ with `org.opencontainers.image.source`, which links the package to the repositor
 that the index is OCI and holds linux/amd64 and linux/arm64.
 `release.yml` calls it after checking that the tag matches `__version__`, and the PyPI job
 `needs:` it, so PyPI never gets a version without its image. It also runs by hand
-(`workflow_dispatch`). About 174 MB compressed (measured 2026-11-21): accepted for Gate 3.
+(`workflow_dispatch`). The package is public: anonymous pulls work. Compressed pull size, from
+`docker buildx imagetools inspect --raw` (config plus layers, gzip; measured 2026-11-22 on
+`0.0.1`): **177.0 MB for linux/amd64** and **172.7 MB for linux/arm64**, about 53 MB of which is
+the Kali base. Accepted for Gate 3.
 
 ## MCP server
 
