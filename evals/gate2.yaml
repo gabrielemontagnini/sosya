@@ -1,0 +1,50 @@
+# Gate 2: ten fixed sentences. The gate passes when at least 8 become green ranges that also
+# meet their expectations. Run with `uv run python evals/run.py` (needs an LLM key and Docker).
+#
+# Expectations are light on purpose:
+#   must_include: substrings that at least one host's component id must contain (any of them)
+#   min_hosts:    the smallest acceptable number of target hosts
+#   pivot:        at least one host must be on a network the attacker does not join
+prompts:
+  - id: single-host
+    sentence: A single vulnerable Drupal site I can practice on
+    must_include: [drupal]
+    min_hosts: 1
+  - id: pivot
+    sentence: A web server in a DMZ that is the only way to reach an internal database server
+    min_hosts: 2
+    pivot: true
+  - id: named-cve
+    sentence: A Log4Shell lab with CVE-2021-44228
+    must_include: [CVE-2021-44228]
+    min_hosts: 1
+  - id: named-product
+    sentence: A Jenkins server with a remote code execution bug
+    must_include: [jenkins]
+    min_hosts: 1
+  - id: multi-service
+    sentence: An old WordPress site together with its MySQL database
+    must_include: [wordpress]
+    min_hosts: 1
+  - id: vague
+    sentence: Something for a beginner to learn web hacking
+    min_hosts: 1
+  - id: not-english
+    sentence: Un laboratorio con un Grafana vulnerabile a path traversal
+    must_include: [grafana]
+    min_hosts: 1
+  - id: three-hosts
+    sentence: >-
+      A public web app in a DMZ, and an internal network with a Redis cache and an SSH server
+      that are reachable only through the web app
+    min_hosts: 3
+    pivot: true
+  - id: local-files
+    sentence: A PHP application vulnerable to local file inclusion
+    must_include: [php]
+    min_hosts: 1
+  - id: gif
+    sentence: Struts2 app in a DMZ, passwordless Redis reachable only from the web server
+    must_include: [struts2, redis]
+    min_hosts: 2
+    pivot: true

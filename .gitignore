@@ -12,6 +12,7 @@ htmlcov/
 
 # Sosya runtime data
 ranges/
+evals/runs/
 .sosya/
 .cache/
 

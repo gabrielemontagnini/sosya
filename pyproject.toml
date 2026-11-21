@@ -57,7 +57,8 @@ select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra -m 'not docker'"
+addopts = "-ra -m 'not docker and not llm'"
 markers = [
     "docker: needs a running Docker daemon",
+    "llm: calls a real LLM (run through ~/.local/bin/with-llm-key)",
 ]
