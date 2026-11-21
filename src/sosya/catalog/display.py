@@ -7,21 +7,20 @@ from collections.abc import Sequence
 from rich.table import Table
 from rich.text import Text
 
+from sosya import engine
 from sosya.catalog.models import Entry
 from sosya.catalog.search import Hit
 
 MAX_PORTS = 4
-_MACHINE_PLATFORMS = {
-    "x86_64": "linux/amd64",
-    "amd64": "linux/amd64",
-    "aarch64": "linux/arm64",
-    "arm64": "linux/arm64",
-    "armv7l": "linux/arm/v7",
-}
 
 
 def host_platform() -> str | None:
-    return _MACHINE_PLATFORMS.get(platform.machine().lower())
+    """The Docker Engine's platform, or Python's guess when the daemon does not answer.
+
+    The guess is only a fallback for `sosya catalog` without Docker: it is wrong under Rosetta
+    and with a remote Docker context. Nothing that starts containers uses it.
+    """
+    return engine.docker_platform() or engine.normalize_platform("linux", platform.machine())
 
 
 def _ports(entry: Entry) -> str:
