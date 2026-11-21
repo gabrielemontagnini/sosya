@@ -375,6 +375,21 @@ range of that name is recorded or running, the range becomes `<name>-2`, `<name>
 `ranges/<name>/range.yaml` and `ranges/<name>/SCENARIO.md`, and the state points at that file,
 so `sosya up`, `down` and `validate` work with the name.
 
+## Gate 2 (2026-11-21)
+
+Ten fixed prompts in `evals/gate2.yaml`, run with `evals/run.py` (Anthropic, sonnet line).
+
+- **Effort sweep** (planning only, no Docker): low, medium and high all gave 10/10 valid plans
+  that met their expectations, at about 5.3 s median for queries and plan together. High had
+  the worst tail (7.7 s p90). Default: **medium**. Queries always use low.
+- **Full run** at medium effort: **10/10 green**, no refusals; 71 s median and 240 s p90 to a
+  green range, mostly image pulls on a cold cache (the GIF prompt, with warm images: 11 s).
+  Two prompts needed the repair loop, once each: a DNS name clash found statically, and a
+  Jenkins agent port (50000) that never answered, after which the LLM picked another Jenkins
+  environment.
+
+Reports: `evals/reports/gate2-plan-20261121-152805.md` and `evals/reports/gate2-20261121-153128.md`.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
