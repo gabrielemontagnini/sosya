@@ -16,9 +16,19 @@ def test_dockerfile_ships_in_the_package() -> None:
     with attacker.build_context() as context:
         dockerfile = (context / "Dockerfile").read_text()
     assert "FROM kalilinux/kali-rolling@sha256:" in dockerfile
-    for tool in ("nmap", "curl", "redis-tools", "netcat-openbsd"):
+    for tool in ("nmap", "curl", "redis-tools", "netcat-openbsd", "socat", "microsocks"):
         assert tool in dockerfile
     assert "metasploit" not in dockerfile
+
+
+def test_relay_scripts_ship_in_the_build_context() -> None:
+    with attacker.build_context() as context:
+        dockerfile = (context / "Dockerfile").read_text()
+        for script in ("sosya-forward", "sosya-relay"):
+            text = (context / script).read_text()
+            assert text.startswith("#!/bin/bash") and script in dockerfile
+            # Listeners bind one address, never every interface.
+            assert "bind=${bind}" in text and "0.0.0.0" not in text
 
 
 def test_build_command() -> None:

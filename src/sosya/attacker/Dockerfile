@@ -21,6 +21,7 @@ RUN apt-get update \
       iputils-ping \
       less \
       mariadb-client \
+      microsocks \
       ncat \
       netcat-openbsd \
       nmap \
@@ -30,10 +31,14 @@ RUN apt-get update \
       python3-requests \
       redis-tools \
       smbclient \
+      socat \
       vim-tiny \
       wget \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+
+# The localhost-only relay of `sosya up --proxy` and `--expose`.
+COPY --chmod=0755 sosya-forward sosya-relay /usr/local/bin/
 
 WORKDIR /root
 CMD ["sleep", "infinity"]

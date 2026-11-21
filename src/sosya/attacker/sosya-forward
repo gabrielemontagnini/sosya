@@ -1,0 +1,48 @@
+#!/bin/bash
+# Runs next to the attacker box, in its network namespace (network_mode: service:attacker).
+# Listens ONLY on the attacker box's address on the internal `relay` network, never on the
+# range's segments, so a compromised target finds nothing to use:
+#   --socks PORT          a SOCKS5 proxy (microsocks): reaches only what the attacker box reaches
+#   LOCAL=HOST:PORT       a TCP forward to a target, for `sosya up --expose`
+# Writes /tmp/sosya-ready once every listener is up; exits as soon as one of them dies.
+set -euo pipefail
+
+address() {
+  for _ in $(seq 1 30); do
+    ip=$(getent ahostsv4 "$1" | awk 'NR == 1 { print $1 }')
+    if [ -n "$ip" ]; then echo "$ip"; return; fi
+    sleep 1
+  done
+  echo "sosya-forward: cannot resolve $1" >&2
+  exit 1
+}
+
+bind=$(address attacker-link)
+ports=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --socks)
+      microsocks -i "$bind" -p "$2" &
+      ports+=("$2")
+      shift 2
+      ;;
+    *=*:*)
+      local_port=${1%%=*}
+      target=${1#*=}
+      socat "TCP-LISTEN:${local_port},bind=${bind},fork,reuseaddr" "TCP:${target}" &
+      ports+=("$local_port")
+      shift
+      ;;
+    *)
+      echo "sosya-forward: unknown argument $1" >&2
+      exit 2
+      ;;
+  esac
+done
+
+for port in "${ports[@]}"; do
+  until ss -Hltn "src $bind and sport = :$port" | grep -q .; do sleep 0.2; done
+done
+touch /tmp/sosya-ready
+wait -n
+exit 1

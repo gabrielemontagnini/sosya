@@ -1,0 +1,23 @@
+#!/bin/bash
+# The relay: the only container of a range on a network that is not internal, so that its
+# ports can be published on 127.0.0.1. It joins no segment. For every PORT it listens ONLY on
+# its own address on that network (the one with the default route) and forwards to the same
+# port of the attacker box's forwarder on the internal `relay` network.
+# Writes /tmp/sosya-ready once every listener is up; exits as soon as one of them dies.
+set -euo pipefail
+
+device=$(ip -4 route show default | awk 'NR == 1 { print $5 }')
+bind=$(ip -4 -o addr show dev "$device" | awk 'NR == 1 { split($4, a, "/"); print a[1] }')
+if [ -z "$bind" ]; then
+  echo "sosya-relay: no address on the published network" >&2
+  exit 1
+fi
+for port in "$@"; do
+  socat "TCP-LISTEN:${port},bind=${bind},fork,reuseaddr" "TCP:attacker-link:${port}" &
+done
+for port in "$@"; do
+  until ss -Hltn "src $bind and sport = :$port" | grep -q .; do sleep 0.2; done
+done
+touch /tmp/sosya-ready
+wait -n
+exit 1
