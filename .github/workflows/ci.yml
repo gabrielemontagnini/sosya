@@ -35,3 +35,23 @@ jobs:
         run: uv run pytest
       - name: Smoke test the CLI
         run: uv run sosya --version
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.9"
+      - name: Build
+        run: uv build
+      - name: Check that the catalog index ships in the wheel and the sdist
+        run: |
+          unzip -l dist/*.whl | grep -q ' sosya/catalog/data/index.json$'
+          tar -tzf dist/*.tar.gz | grep -q '/src/sosya/catalog/data/index.json$'
+      - name: Search the catalog from the installed wheel
+        run: uv run --isolated --no-project --with dist/*.whl sosya catalog struts2

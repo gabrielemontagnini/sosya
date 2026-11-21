@@ -26,6 +26,12 @@ jobs:
         run: uv build
       - name: Smoke test the wheel
         run: uv run --isolated --no-project --with dist/*.whl sosya --version
+      - name: Check that the catalog index ships in the wheel and the sdist
+        run: |
+          unzip -l dist/*.whl | grep -q ' sosya/catalog/data/index.json$'
+          tar -tzf dist/*.tar.gz | grep -q '/src/sosya/catalog/data/index.json$'
+      - name: Search the catalog from the installed wheel
+        run: uv run --isolated --no-project --with dist/*.whl sosya catalog struts2
       - name: Upload distributions
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
