@@ -1,0 +1,9 @@
+{
+  "id": "chatcmpl-test-1",
+  "object": "chat.completion",
+  "model": "test-local-1",
+  "choices": [
+    {"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "{\"queries\": [\"jenkins\"]}", "refusal": null}}
+  ],
+  "usage": {"prompt_tokens": 90, "completion_tokens": 9, "total_tokens": 99}
+}

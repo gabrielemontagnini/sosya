@@ -1,0 +1,9 @@
+{
+  "id": "msg_test_3",
+  "type": "message",
+  "role": "assistant",
+  "model": "test-sonnet-2",
+  "content": [{"type": "text", "text": "{\"queries\": [\"stru"}],
+  "stop_reason": "max_tokens",
+  "usage": {"input_tokens": 120, "output_tokens": 16000}
+}

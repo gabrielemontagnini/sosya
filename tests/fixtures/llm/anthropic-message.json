@@ -1,0 +1,13 @@
+{
+  "id": "msg_test_1",
+  "type": "message",
+  "role": "assistant",
+  "model": "test-sonnet-2",
+  "content": [
+    {"type": "thinking", "thinking": "", "signature": "sig"},
+    {"type": "text", "text": "{\"queries\": [\"struts2\", \"redis\"]}"}
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {"input_tokens": 120, "output_tokens": 18, "cache_read_input_tokens": 0}
+}

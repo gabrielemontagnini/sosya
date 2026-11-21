@@ -248,6 +248,33 @@ any directory with no repository and no LLM key. CI checks that the gallery is i
 and the sdist, and that every gallery range passes `load_range` and `check_catalog` from the
 installed wheel.
 
+## LLM adapters
+
+Two adapters, both plain HTTP with `httpx` and no vendor SDK, behind one interface: complete a
+conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
+
+- **Anthropic**: `POST /v1/messages` with `output_config.format` (`json_schema`). Requests never
+  set `temperature`, `top_p`, `top_k`, `thinking` or an assistant prefill, which current models
+  reject. Forced tool use is not used: recent models reject `tool_choice` `tool`/`any`.
+- **OpenAI-compatible** (OpenAI, Ollama, LM Studio, vLLM, OpenRouter): `POST /chat/completions`
+  with `response_format` `json_schema` and `strict: true`. If the server rejects it with a 400
+  or 422 about the response format, the adapter switches to text mode for the rest of the
+  process: the schema goes into the system prompt and the JSON is read from the reply.
+- **Schemas** are stable and dedicated (`sosya.llm.schema.strict_schema`): every object closed
+  with `additionalProperties: false`, every property required, unsupported constraints
+  (lengths, bounds, patterns, defaults) removed and checked again by Pydantic. A schema never
+  depends on the request, because every change recompiles the provider's grammar.
+- **Stops**: `refusal` raises `RefusalError` (with its category); `max_tokens` or `length`
+  retries with twice the output tokens, up to 64000, leaving room for adaptive reasoning.
+- **Retries**: connection errors and 408, 409, 429, 5xx and 529, at most 4 attempts, honouring
+  `retry-after`. Errors carry the status and the server's error type and message, with any
+  key scrubbed.
+- **Model**: `--model`, else `SOSYA_MODEL`. Otherwise the Anthropic adapter lists
+  `GET /v1/models` and takes the newest model of the sonnet line by `created_at` (cached for
+  24 hours in `~/.cache/sosya/models.json`). The OpenAI-compatible adapter takes the only model
+  the endpoint lists and stops with the list when there are several.
+- No model id appears in code, tests, docs or prompts; tests use fake ids.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
