@@ -346,6 +346,35 @@ with 0, it keeps polling the others until the same deadline, and fails only on a
 other than 0, an unhealthy service or the deadline. `sosya validate` counts an exit code of 0 as
 a success.
 
+## Repair loop
+
+`sosya new` (`sosya.build.build`) gets at most **3 attempts in all**, static and live failures
+together:
+
+1. draft the range; static issues (schema, catalog, "not a candidate") go back to the LLM;
+2. otherwise start it from `.sosya/ranges/<name>/attempts/<n>/range.yaml`; a range that does
+   not start is a live problem;
+3. validate it; failed checks go back to the LLM with the last 30 log lines of every service of
+   the hosts involved. Warnings never go back.
+
+Every failed attempt is stopped before the next one and kept in
+`.sosya/ranges/<name>/attempts/<n>/` (`range.yaml` or `draft.json`, `issues.json`, `logs.txt`,
+`docker-compose.yml`). `sosya down` deletes everything in the range directory except
+`attempts/`.
+
+Failures of the machine stop the build at once, without repair, because another component would
+not fix them: Docker Hub's pull limit (`toomanyrequests`), no network, a full disk, no free
+subnets, an unreachable or too old daemon, an unreachable LLM API
+(`runtime.HostEnvironmentError`). An image that does not exist (`manifest unknown`, `not
+found`, `pull access denied`) is the component's problem and goes to repair. A refusal from the
+model stops the build with a clear message.
+
+The first draft that has a name fixes it for every attempt. If `ranges/<name>/` exists, or a
+range of that name is recorded or running, the range becomes `<name>-2`, `<name>-3`, ...
+(within the 40-character limit), and the output says so. A green range is published to
+`ranges/<name>/range.yaml` and `ranges/<name>/SCENARIO.md`, and the state points at that file,
+so `sosya up`, `down` and `validate` work with the name.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,

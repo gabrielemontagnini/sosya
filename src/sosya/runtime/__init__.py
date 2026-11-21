@@ -21,6 +21,7 @@ from sosya.scenario import markdown as scenario
 from sosya.spec import RangeSpec, SpecError, check_catalog, errors, load_range, range_file
 
 WORKSPACE = Path(".sosya")
+ATTEMPTS = "attempts"
 WAIT_TIMEOUT = 600
 SUBNET_EXHAUSTED = (
     "all predefined address pools have been fully subnetted",
@@ -38,6 +39,47 @@ class RangeError(RuntimeError):
     """A range that cannot be started, stopped or entered. The message is for the user."""
 
 
+class HostEnvironmentError(RangeError):
+    """A failure of the machine, not of the range: changing a component would not fix it.
+
+    Docker Hub's pull limit, no network, a full disk, no free subnets, an unreachable or too
+    old Docker daemon. The repair loop stops on these instead of spending attempts.
+    """
+
+
+ENVIRONMENT_MARKERS = (
+    "toomanyrequests",
+    "too many requests",
+    "rate limit",
+    "no space left on device",
+    "temporary failure in name resolution",
+    "network is unreachable",
+    "i/o timeout",
+    "tls handshake timeout",
+    "connection reset by peer",
+    "could not resolve host",
+    "cannot connect to the docker daemon",
+    "dial tcp",
+)
+COMPONENT_MARKERS = (
+    "manifest unknown",
+    "pull access denied",
+    "repository does not exist",
+    "no matching manifest",
+    "not found",
+)
+
+
+def classify(message: str) -> type[RangeError]:
+    """`HostEnvironmentError` for problems of the machine, `RangeError` for the range's own."""
+    lowered = message.lower()
+    if any(marker in lowered for marker in COMPONENT_MARKERS):
+        return RangeError  # the image or tag is wrong: another component may work
+    if any(marker in lowered for marker in (*ENVIRONMENT_MARKERS, *SUBNET_EXHAUSTED)):
+        return HostEnvironmentError
+    return RangeError
+
+
 @dataclass(frozen=True)
 class Workspace:
     root: Path = WORKSPACE
@@ -53,6 +95,9 @@ class Workspace:
 
     def scenario_file(self, name: str) -> Path:
         return self.range_dir(name) / "SCENARIO.md"
+
+    def attempts_dir(self, name: str) -> Path:
+        return self.range_dir(name) / ATTEMPTS
 
 
 @dataclass(frozen=True)
@@ -147,7 +192,7 @@ def _pull_missing(docker: Docker, compose: dict, report: Reporter) -> None:
         report("info", f"pulling {image}")
         proc = docker.pull(image, service.get("platform"))
         if proc.returncode != 0:
-            raise RangeError(f"could not pull {image}:\n{_tail(proc.stderr)}")
+            raise classify(proc.stderr)(f"could not pull {image}:\n{_tail(proc.stderr)}")
         report("ok", f"image {image} pulled")
 
 
@@ -156,11 +201,11 @@ def _up_failure(stderr: str, docker: Docker, name: str) -> RangeError:
     if any(marker in lowered for marker in SUBNET_EXHAUSTED):
         others = sorted({c.range for c in docker.containers() if c.range and c.range != name})
         hint = f" Running ranges: {', '.join(others)}." if others else ""
-        return RangeError(
+        return HostEnvironmentError(
             "Docker has no free subnets left for the range's networks. Stop ranges you no "
             f"longer need with `sosya down <name>`.{hint}"
         )
-    return RangeError(f"docker compose up failed:\n{_tail(stderr)}")
+    return classify(stderr)(f"docker compose up failed:\n{_tail(stderr)}")
 
 
 def _completed(container: ContainerInfo) -> bool:
@@ -224,7 +269,7 @@ def up(
 
     problem = engine.engine_problem()
     if problem is not None:
-        raise RangeError(problem)
+        raise HostEnvironmentError(problem)
     platform = engine.docker_platform()
     index = load_index()
     issues = check_catalog(spec, index, host_platform=platform, allow_privileged=allow_privileged)
@@ -262,7 +307,7 @@ def up(
         try:
             checkout = vulhub.ensure(sorted({entry.path for entry in needs_files}))
         except Exception as exc:  # git missing, network down, ...
-            raise RangeError(f"could not download the Vulhub files: {exc}") from None
+            raise HostEnvironmentError(f"could not download the Vulhub files: {exc}") from None
         report("ok", f"Vulhub files for {', '.join(sorted(e.id for e in needs_files))}")
         _copy_files(spec, resolved, checkout, workspace.files_dir(spec.name).resolve())
 
@@ -378,6 +423,23 @@ def _remove_tree(path: Path, docker: Docker) -> None:
         raise RangeError(f"could not delete {path}: remove it by hand")
 
 
+def _remove_range_dir(range_dir: Path, docker: Docker) -> None:
+    """Delete a range's working files, but keep `attempts/`: the debug record of `sosya new`."""
+    if not range_dir.exists():
+        return
+    keep = range_dir / ATTEMPTS
+    if not keep.exists():
+        _remove_tree(range_dir, docker)
+        return
+    for child in sorted(range_dir.iterdir()):
+        if child == keep:
+            continue
+        if child.is_dir() and not child.is_symlink():
+            _remove_tree(child, docker)
+        else:
+            child.unlink(missing_ok=True)
+
+
 def _compose_file_of(
     record: state_store.RangeState | None, found: list[ContainerInfo]
 ) -> Path | None:
@@ -421,7 +483,7 @@ def down(
     report("ok", f"containers and networks of {name} removed")
     range_dir = compose_file.parent if compose_file is not None else None
     if range_dir is not None and range_dir.parent.name == "ranges":
-        _remove_tree(range_dir, docker)
+        _remove_range_dir(range_dir, docker)
         report("ok", f"files of {name} deleted")
     state_store.forget(workspace.root, name)
 
@@ -484,6 +546,7 @@ def shell(name: str, *, docker: Docker | None = None) -> int:
 
 __all__ = [
     "DockerError",
+    "HostEnvironmentError",
     "Level",
     "RangeError",
     "RangeStatus",

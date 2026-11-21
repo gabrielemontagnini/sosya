@@ -117,7 +117,7 @@ class RangeSpec(_Model):
         return self
 
     def to_yaml(self) -> str:
-        data = self.model_dump(mode="json", by_alias=True, exclude_defaults=False)
+        data = self.model_dump(mode="json", by_alias=True, exclude_none=True)
         return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
 
 
