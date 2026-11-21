@@ -21,7 +21,7 @@ from sosya.llm.http import dumps
 from sosya.planner import prompt
 from sosya.planner.candidates import Candidate, candidates
 from sosya.planner.schema import MAX_QUERIES, PLAN_SCHEMA, QUERY_SCHEMA, PlanDraft, QueryPlan
-from sosya.spec import Issue, RangeSpec, SpecError, check_catalog, parse_range
+from sosya.spec import Issue, RangeSpec, SpecError, check_catalog, issues_from, parse_range
 
 QUERY_EFFORT = "low"
 
@@ -61,11 +61,6 @@ def _validation_issues(exc: ValidationError) -> list[Issue]:
         where = ".".join(str(part) for part in error["loc"])
         issues.append(Issue("error", f"{where}: {error['msg']}" if where else error["msg"]))
     return issues
-
-
-def _spec_issues(exc: SpecError) -> list[Issue]:
-    lines = str(exc).splitlines()[1:] or [str(exc)]
-    return [Issue("error", line.strip()) for line in lines if line.strip()]
 
 
 class Planner:
@@ -139,7 +134,7 @@ class Planner:
         try:
             spec = parse_range(range_data, "the lab")
         except SpecError as exc:
-            return None, outside + _spec_issues(exc)
+            return None, outside + issues_from(exc)
         if outside:
             return None, outside
         issues = check_catalog(

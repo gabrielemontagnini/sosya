@@ -179,6 +179,12 @@ def errors(issues: list[Issue]) -> list[Issue]:
     return [issue for issue in issues if issue.level == "error"]
 
 
+def issues_from(exc: SpecError) -> list[Issue]:
+    """One `Issue` per problem of a `SpecError`, as the repair loop and the MCP server send them."""
+    lines = str(exc).splitlines()[1:] or [str(exc)]
+    return [Issue("error", line.strip()) for line in lines if line.strip()]
+
+
 def _suggest(component: str, index: CatalogIndex) -> str:
     ids = [entry.id for entry in index.entries]
     close = difflib.get_close_matches(component, ids, n=3, cutoff=0.6)

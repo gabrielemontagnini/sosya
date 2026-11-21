@@ -384,6 +384,22 @@ def catalog(
 
 
 @app.command()
+def mcp(
+    workspace: Annotated[
+        Path | None,
+        typer.Option(
+            help="Where the server keeps its ranges. Default: SOSYA_WORKSPACE, else "
+            "$XDG_STATE_HOME/sosya (~/.local/state/sosya). Never the current directory.",
+        ),
+    ] = None,
+) -> None:
+    """Start the MCP server on stdio, for AI agents."""
+    from sosya.mcp import server
+
+    server.run_stdio(workspace)
+
+
+@app.command()
 def doctor() -> None:
     """Check Docker, Compose v2, CPU architecture and LLM configuration."""
     results = run_checks()

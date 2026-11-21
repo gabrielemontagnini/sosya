@@ -403,6 +403,45 @@ Ten fixed prompts in `evals/gate2.yaml`, run with `evals/run.py` (Anthropic, son
 
 Reports: `evals/reports/gate2-plan-20261121-152805.md` and `evals/reports/gate2-20261121-153128.md`.
 
+## MCP server
+
+`sosya mcp` (`sosya.mcp`) is a thin layer over the functions the CLI uses (`sosya.mcp.tools`),
+built with the official MCP Python SDK (2.x) and served on stdio.
+
+| Tool | What it does |
+| --- | --- |
+| `catalog_search` | ids, titles, CVEs, ports (with `optional`), platforms, `runnable` and `emulated` for the engine; dangerous entries never appear, even when named |
+| `check_range` | a `range.yaml` written by the agent: the range schema and `check_catalog`, with the same issues as the repair loop, so an agent can plan without an LLM key |
+| `up` | a `range.yaml` or a gallery name; pulls and starts with progress notifications |
+| `status`, `validate`, `down`, `scenario` | as the CLI; `scenario` returns SCENARIO.md |
+| `new` | registered only when the environment names an LLM provider (no network call at start: the model is chosen at the first call) |
+| `attacker_exec` | a command in the attacker box, only when the range has `attacker.internet: false` **and** every network the live box joins is internal |
+| `check_flag` | right or wrong, compared in constant time; never the value |
+
+Rules:
+
+- **Dangerous environments are always refused** (see
+  [Services with host-level privileges](#services-with-host-level-privileges)). No tool has an
+  `allow_privileged` argument; `runtime.up` and `build.build` always get `False`.
+- **Flag values never appear** in a result or a progress message: recorded values and anything
+  shaped like `SOSYA{...}` become `SOSYA{redacted}`. The exception is the output of
+  `attacker_exec`: a flag only appears there after a real exploit, and the agent must be able to
+  prove the capture, which `check_flag` then confirms.
+- **Errors are issues.** Every result has `ok` and `issues` (`level`, `message`, `host`) and is
+  marked as an MCP error when `ok` is false; an unexpected exception becomes an issue too, with
+  the traceback on stderr.
+- **Fixed workspace.** MCP clients start servers from arbitrary, sometimes read-only, working
+  directories (even `/`), so the server never uses the current directory: it works in
+  `SOSYA_WORKSPACE`, else `--workspace`, else `$XDG_STATE_HOME/sosya` (`~/.local/state/sosya`).
+  An agent's `range.yaml` is kept in `mcp/<name>/range.yaml` there, outside the range directory
+  that `down` deletes. Ranges started over MCP carry the usual labels, so `sosya status` and
+  `sosya down` find them from any directory.
+- **stdout is the protocol.** Tools never print; every Docker call captures its output; logs go
+  to stderr. A test starts the server on real stdio with a noisy fake `docker` and checks that
+  every line on stdout is a JSON-RPC 2.0 message.
+- Progress: the runtime's one-line steps (one per pulled image) become progress notifications.
+  MCP log notifications are not used: they are deprecated in the current protocol version.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
@@ -424,6 +463,6 @@ Reports: `evals/reports/gate2-plan-20261121-152805.md` and `evals/reports/gate2-
   copy, with a throwaway container when a target left files owned by root.
 - `runtime/`: check the Docker Engine version (at least 28.0.0) before `up`, and enforce
   `--allow-privileged` with a confirmation for dangerous environments (in both `up` and `new`).
-- `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment.
+- `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment (see [MCP server](#mcp-server)).
 - `catalog/`: store the dangerous flag (with its reasons) and the image platforms in the index.
 - `validate/`: see [Live validation](#live-validation).

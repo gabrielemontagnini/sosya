@@ -39,6 +39,28 @@ $ sosya shell dmz-redis
 $ sosya down dmz-redis
 ```
 
+## For AI agents: `sosya mcp`
+
+`sosya mcp` is an MCP server on stdio. It works with any MCP client:
+
+```json
+{
+  "mcpServers": {
+    "sosya": { "command": "sosya", "args": ["mcp"] }
+  }
+}
+```
+
+An agent can act as the planner itself, with no LLM key: `catalog_search`, write a
+`range.yaml`, `check_range` until it has no errors, then `up`, `validate`, `scenario` and `down`.
+`new` (one sentence to a green range) appears only when an LLM provider is configured.
+`attacker_exec` runs commands in the attacker box only for ranges with `attacker.internet: false`,
+and `check_flag` checks a captured flag without revealing it. Environments with host-level
+privileges are always refused over MCP.
+
+The server keeps its ranges in `$XDG_STATE_HOME/sosya` (`~/.local/state/sosya`), or in
+`--workspace` / `SOSYA_WORKSPACE`; `sosya status` and `sosya down` see them from anywhere.
+
 ## Responsible use
 
 Sosya builds local labs for training and research on systems you own. It does not generate or run
