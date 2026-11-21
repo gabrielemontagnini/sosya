@@ -7,6 +7,9 @@ from rich.console import Console
 from rich.table import Table
 
 from sosya import __version__
+from sosya.catalog.display import host_platform, results_json, results_table
+from sosya.catalog.loader import load_index
+from sosya.catalog.search import DEFAULT_LIMIT, search
 from sosya.doctor import CheckResult, Status, run_checks
 
 app = typer.Typer(
@@ -91,10 +94,43 @@ def validate(name: RangeArg) -> None:
 
 @app.command()
 def catalog(
-    query: Annotated[str | None, typer.Argument(help="Words to search for.")] = None,
+    queries: Annotated[
+        list[str] | None,
+        typer.Argument(
+            metavar="[QUERY]...",
+            help="What to search for. Each argument is a separate query and the results are "
+            "merged: `sosya catalog jenkins gitlab`. Quote words that belong together: "
+            '`sosya catalog "java deserialization"`.',
+        ),
+    ] = None,
+    limit: Annotated[
+        int | None,
+        typer.Option(
+            help="Show at most this many results. Default: 25 for a search, all for none."
+        ),
+    ] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the results as JSON.")] = False,
 ) -> None:
     """Search the available vulnerable environments."""
-    _not_yet("catalog")
+    index = load_index()
+    has_query = any(query.strip() for query in queries or [])
+    hits = search(
+        index,
+        queries or [],
+        limit=limit if limit is not None else (DEFAULT_LIMIT if has_query else None),
+        include_dangerous=True,
+    )
+    if as_json:
+        typer.echo(results_json(hits))
+        return
+    if not hits:
+        console.print(f"No environment matches [bold]{' '.join(queries or [])}[/].")
+        return
+    console.print(results_table(hits, host_platform()))
+    console.print(
+        f"[dim]{len(hits)} of {len(index.entries)} environments · "
+        f"Vulhub @ {index.vulhub_commit[:7]}[/]"
+    )
 
 
 @app.command()
