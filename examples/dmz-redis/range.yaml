@@ -1,0 +1,19 @@
+apiVersion: sosya/v1
+name: dmz-redis
+description: Struts2 in a DMZ, passwordless Redis only on the internal network
+networks: [dmz, internal]
+hosts:
+  - name: web
+    component: vulhub/struts2/s2-045
+    networks: [dmz, internal]
+    flag: /root/flag.txt
+  - name: cache
+    component: vulhub/redis/4-unacc
+    networks: [internal]
+    flag: /data/flag.txt
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Get a shell on web
+  - Pivot from web to cache and read the flag
