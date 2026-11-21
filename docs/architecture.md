@@ -299,7 +299,12 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
      are dropped; entries that run only under emulation stay, marked as such;
    - dangerous entries are dropped unless the user's own sentence names them by path or CVE
      id. A keyword the LLM made up never counts.
+   - on equal relevance, the 230 image-only entries rank before the 104 that need local files
+     from the Vulhub checkout. This tiebreak applies in every per-query ranking and in the fused
+     order, so `sosya catalog` sorts the same way.
 3. **Draft.** The LLM writes a `PlanDraft` from the candidates, which are listed in the prompt.
+   Entries that need local files carry a `[local files]` mark, and the system prompt tells
+   the LLM to prefer the others when they fit the description equally well.
    The schema is fixed: there is no enum of candidate ids, and no `flag` (flag paths are not the
    LLM's choice). The draft becomes a `range.yaml` mapping and goes through the same checks as
    a hand-written file: the range schema, `check_catalog`, and "the component is one of the
@@ -426,6 +431,16 @@ Ten fixed prompts in `evals/gate2.yaml`, run with `evals/run.py` (Anthropic, son
   environment.
 
 Reports: `evals/reports/gate2-plan-20261121-152805.md` and `evals/reports/gate2-20261121-153128.md`.
+
+**Rerun after the local-files preference** (2026-11-22, planning only, medium): still **10/10**
+valid plans with their expectations met, every one on the first attempt, 5.3 s median and
+6.7 s p90. Before the change, 3 of the 10 plans used environments with local files; now none
+does. `pivot` and `three-hosts` swapped `phpmyadmin/CVE-2018-12613` and `git/CVE-2017-8386` for
+image-only environments. `local-files` ("a PHP application vulnerable to local file
+inclusion") now gets `thinkphp/lang-rce`, a ThinkPHP file inclusion, instead of `php/inclusion`.
+That still fits the sentence, but it means the Gate 2 prompts no longer start an environment
+with local files. That path stays covered by `tests/integration/test_local_files.py`.
+Report: `evals/reports/gate2-plan-20261121-232328.md`.
 
 ## Proxy and expose
 

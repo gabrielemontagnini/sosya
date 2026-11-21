@@ -1,0 +1,168 @@
+{
+  "medium": [
+    {
+      "id": "single-host",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/drupal/CVE-2018-7600"
+      ],
+      "times": {
+        "queries": 2.8904546109988587,
+        "plan": 3.969933381995361,
+        "total": 6.903150578997156
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "pivot",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/showdoc/CNVD-2020-26585",
+        "vulhub/adminer/CVE-2021-43008"
+      ],
+      "times": {
+        "queries": 1.9696570109954337,
+        "plan": 2.7839084579973132,
+        "total": 4.801807786003337
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "named-cve",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/log4j/CVE-2021-44228"
+      ],
+      "times": {
+        "queries": 3.066592886003491,
+        "plan": 3.4526373359985882,
+        "total": 6.55820838699583
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "named-product",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/jenkins/CVE-2017-1000353"
+      ],
+      "times": {
+        "queries": 4.093064594999305,
+        "plan": 2.509904614998959,
+        "total": 6.650113766001596
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "multi-service",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/wordpress/pwnscriptum"
+      ],
+      "times": {
+        "queries": 2.0479717389971483,
+        "plan": 2.5182310759992106,
+        "total": 4.606718215996807
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "vague",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/drupal/CVE-2014-3704"
+      ],
+      "times": {
+        "queries": 2.1370936690000235,
+        "plan": 3.4450090969985467,
+        "total": 5.626365647003695
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "not-english",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/grafana/CVE-2021-43798"
+      ],
+      "times": {
+        "queries": 2.431024522993539,
+        "plan": 2.5421658999985084,
+        "total": 5.016061759000877
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "three-hosts",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/weblogic/ssrf",
+        "vulhub/redis/4-unacc",
+        "vulhub/erlang/CVE-2025-32433"
+      ],
+      "times": {
+        "queries": 3.2190121739986353,
+        "plan": 2.9134389070022735,
+        "total": 6.189026710999315
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "local-files",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/thinkphp/lang-rce"
+      ],
+      "times": {
+        "queries": 1.690648292998958,
+        "plan": 2.0995856409936096,
+        "total": 3.8369943930010777
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "gif",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/struts2/s2-061",
+        "vulhub/redis/4-unacc"
+      ],
+      "times": {
+        "queries": 2.251930045997142,
+        "plan": 2.3088176339952042,
+        "total": 4.607678342996223
+      },
+      "message": "",
+      "refusal_category": null
+    }
+  ]
+}

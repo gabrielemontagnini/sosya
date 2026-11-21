@@ -145,7 +145,8 @@ def _named_rank(term_lists: Sequence[tuple[str, list[str]]], entry: Entry) -> in
 def _rank(terms: Sequence[str], docs: Sequence[_Doc]) -> list[tuple[_Doc, float]]:
     scored = [(doc, score(terms, doc)) for doc in docs]
     hits = [(doc, s) for doc, s in scored if s > 0]
-    return sorted(hits, key=lambda item: (-item[1], item[0].entry.id))
+    # On equal scores, environments that need no local files come first (the v0.1 preference).
+    return sorted(hits, key=lambda item: (-item[1], not item[0].entry.image_only, item[0].entry.id))
 
 
 def search(
@@ -188,7 +189,12 @@ def search(
     named = {e: n for e, n in ((i, _named_rank(term_lists, entries[i])) for i in fused) if n}
     ordered = sorted(
         fused,
-        key=lambda entry_id: (named.get(entry_id, _NOT_NAMED), -fused[entry_id], entry_id),
+        key=lambda entry_id: (
+            named.get(entry_id, _NOT_NAMED),
+            -fused[entry_id],
+            not entries[entry_id].image_only,
+            entry_id,
+        ),
     )
     hits = [Hit(entries[i], round(fused[i], 6), tuple(matched[i])) for i in ordered]
     return hits[:limit] if limit is not None else hits

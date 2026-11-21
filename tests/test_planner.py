@@ -7,7 +7,7 @@ from factories import entry, index, services_of
 
 from sosya.catalog.models import CatalogIndex, DangerReason
 from sosya.llm.base import Completion, Message
-from sosya.planner import Planner
+from sosya.planner import Candidate, Planner
 from sosya.planner.candidates import candidates
 from sosya.planner.prompt import PLAN_SYSTEM, QUERY_SYSTEM
 from sosya.planner.schema import PLAN_SCHEMA, QUERY_SCHEMA
@@ -241,3 +241,17 @@ def test_schemas_are_strict(schema: dict) -> None:
                 walk(value)
 
     walk(schema)
+
+
+def test_the_plan_request_marks_entries_with_local_files() -> None:
+    from sosya.catalog.loader import load_index as real_index
+    from sosya.planner import prompt
+
+    catalog = real_index()
+    files = next(e for e in catalog.entries if not e.image_only)
+    image = next(e for e in catalog.entries if e.image_only)
+    text = prompt.plan_request("x", [Candidate(files), Candidate(image)])
+    first, second = text.splitlines()[-2:]
+    assert first.startswith(f"- {files.id}") and "[local files]" in first
+    assert second.startswith(f"- {image.id}") and "[local files]" not in second
+    assert "[local files]" in prompt.PLAN_SYSTEM

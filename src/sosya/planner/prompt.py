@@ -31,7 +31,8 @@ Write the lab as JSON with these rules:
   only after a pivot, put it on a segment the attacker does not join, and put another host on
   both segments.
 - Use the fewest hosts that satisfy the description. Prefer environments that do not run under
-  emulation.
+  emulation. Prefer environments without [local files] when they fit the description equally
+  well.
 - objectives: 1 to 4 short goals for the trainee, such as "Get a shell on web" or "Read the flag
   on cache". Goals only, never instructions on how to attack.
 - description: one sentence that says what the lab contains."""
@@ -50,6 +51,8 @@ def _candidate_line(candidate: Candidate) -> str:
     summary = " ".join(entry.summary.split())[:160]
     if summary:
         parts.append(f"summary: {summary}")
+    if not entry.image_only:
+        parts.append("[local files]")
     if candidate.emulated:
         parts.append("[emulated: slow on this machine]")
     return "- " + " | ".join(parts)

@@ -184,3 +184,36 @@ def test_dangerous_entries_are_left_out_unless_named() -> None:
 
 def test_no_match_returns_nothing() -> None:
     assert search(INDEX, "sharepoint") == []
+
+
+def test_on_equal_scores_entries_without_local_files_come_first() -> None:
+    from sosya.catalog.models import LocalFile
+
+    needs_files = _entry(
+        "php/a-files",
+        "PHP",
+        "PHP include",
+        local_files=[LocalFile(service="web", kind="bind", source="./www")],
+    )
+    image_only = _entry("php/b-image", "PHP", "PHP include")
+    index = CatalogIndex(vulhub_commit="0" * 40, entries=[needs_files, image_only])
+    # The ids alone would put php/a-files first.
+    assert [h.entry.id for h in search(index, "php")] == [
+        "vulhub/php/b-image",
+        "vulhub/php/a-files",
+    ]
+    assert next(h.entry.id for h in search(index, ["php", "include"])) == "vulhub/php/b-image"
+
+
+def test_a_better_score_still_beats_the_local_files_preference() -> None:
+    from sosya.catalog.models import LocalFile
+
+    needs_files = _entry(
+        "php/a-files",
+        "PHP",
+        "PHP include traversal",
+        local_files=[LocalFile(service="web", kind="bind", source="./www")],
+    )
+    image_only = _entry("php/b-image", "PHP", "PHP include")
+    index = CatalogIndex(vulhub_commit="0" * 40, entries=[needs_files, image_only])
+    assert search(index, "php traversal")[0].entry.id == "vulhub/php/a-files"
