@@ -461,8 +461,12 @@ local port is taken, unless the range's own relay holds it.
 
 `ghcr.io/gabrielemontagnini/sosya-attacker:<version>`, for linux/amd64 and linux/arm64, built
 by `.github/workflows/attacker.yml` on native runners (`ubuntu-24.04` and `ubuntu-24.04-arm`,
-no QEMU), smoke-tested, pushed as `<version>-<arch>` and joined into one multi-platform tag
-annotated with `org.opencontainers.image.source`, which links the package to the repository.
+no QEMU). Each build uses a `docker-container` builder and pushes by digest with OCI media
+types (`oci-mediatypes=true`), because a Docker manifest list cannot carry annotations; the
+smoke test pulls the published image back by digest, since that builder does not load it
+locally. The merge job joins the two digests into one OCI index tagged `<version>`, annotated
+with `org.opencontainers.image.source`, which links the package to the repository, and checks
+that the index is OCI and holds linux/amd64 and linux/arm64.
 `release.yml` calls it after checking that the tag matches `__version__`, and the PyPI job
 `needs:` it, so PyPI never gets a version without its image. It also runs by hand
 (`workflow_dispatch`). About 174 MB compressed (measured 2026-11-21): accepted for Gate 3.

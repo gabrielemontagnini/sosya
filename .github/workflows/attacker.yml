@@ -60,27 +60,46 @@ jobs:
             runner: ubuntu-24.04
           - arch: arm64
             runner: ubuntu-24.04-arm
-    env:
-      TAG: ${{ needs.version.outputs.version }}-${{ matrix.arch }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Build natively
+      - name: Log in to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Build natively and push by digest
+        # A docker-container builder writes OCI media types, which the merged index needs for
+        # its annotations. It does not load the image into the local engine.
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          docker build \
+          docker buildx create --name sosya --driver docker-container --use
+          docker buildx build \
             --platform "linux/${{ matrix.arch }}" \
+            --provenance=false \
+            --sbom=false \
             --label "org.opencontainers.image.source=$IMAGE_SOURCE" \
             --label "org.opencontainers.image.version=$VERSION" \
             --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-            --tag "$REPOSITORY:$TAG" \
+            --output "type=image,name=$REPOSITORY,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true" \
+            --metadata-file metadata.json \
             src/sosya/attacker
-      - name: Smoke test
+          digest=$(jq -r '."containerimage.digest"' metadata.json)
+          if ! [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "no digest in the build metadata: '$digest'" >&2
+            exit 1
+          fi
+          echo "DIGEST=$digest" >> "$GITHUB_ENV"
+          mkdir -p digests
+          echo "$digest" > "digests/${{ matrix.arch }}"
+      - name: Smoke test the published image
+        # Pulled back by digest: the builder did not load it locally.
         run: |
-          docker run --rm --entrypoint bash "$REPOSITORY:$TAG" -c '
+          image="$REPOSITORY@$DIGEST"
+          docker pull "$image"
+          docker run --rm --entrypoint bash "$image" -c '
             set -euo pipefail
             nmap --version | head -1
             socat -V | grep -m1 "socat version"
@@ -88,14 +107,16 @@ jobs:
               command -v "$tool"
             done
           '
-          label=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' "$REPOSITORY:$TAG")
+          test "$(docker image inspect --format '{{ .Architecture }}' "$image")" = "${{ matrix.arch }}"
+          label=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' "$image")
           test "$label" = "$IMAGE_SOURCE"
-      - name: Push
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
-          docker push "$REPOSITORY:$TAG"
+      - name: Hand the digest to the merge job
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: digest-${{ matrix.arch }}
+          path: digests/${{ matrix.arch }}
+          if-no-files-found: error
+          retention-days: 1
 
   merge:
     needs: [version, build]
@@ -103,21 +124,34 @@ jobs:
     env:
       VERSION: ${{ needs.version.outputs.version }}
     steps:
+      - name: Download the digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digest-*
+          path: digests
+          merge-multiple: true
       - name: Publish the multi-platform tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          amd64=$(cat digests/amd64)
+          arm64=$(cat digests/arm64)
           docker buildx imagetools create \
             --annotation "index:org.opencontainers.image.source=$IMAGE_SOURCE" \
             --annotation "index:org.opencontainers.image.description=Attacker box for Sosya ranges" \
             --annotation "index:org.opencontainers.image.licenses=MIT" \
             --tag "$REPOSITORY:$VERSION" \
-            "$REPOSITORY:$VERSION-amd64" \
-            "$REPOSITORY:$VERSION-arm64"
-      - name: Check both platforms
+            "$REPOSITORY@$amd64" \
+            "$REPOSITORY@$arm64"
+      - name: Check the OCI index
         run: |
-          platforms=$(docker buildx imagetools inspect --raw "$REPOSITORY:$VERSION" \
-            | jq -r '[.manifests[].platform | select(.os != "unknown") | "\(.os)/\(.architecture)"] | sort | join(",")')
+          raw=$(docker buildx imagetools inspect --raw "$REPOSITORY:$VERSION")
+          echo "$raw" | jq .
+          test "$(echo "$raw" | jq -r .mediaType)" = "application/vnd.oci.image.index.v1+json"
+          test "$(echo "$raw" | jq -r '.annotations["org.opencontainers.image.source"]')" = "$IMAGE_SOURCE"
+          platforms=$(echo "$raw" | jq -r '[.manifests[].platform | "\(.os)/\(.architecture)"] | sort | join(",")')
           echo "platforms: $platforms"
           test "$platforms" = "linux/amd64,linux/arm64"
+          kinds=$(echo "$raw" | jq -r '[.manifests[].mediaType] | unique | join(",")')
+          test "$kinds" = "application/vnd.oci.image.manifest.v1+json"
