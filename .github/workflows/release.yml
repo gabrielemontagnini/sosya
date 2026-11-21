@@ -8,7 +8,40 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+[ab][0-9]+"
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check that the tag matches __version__
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          version=$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sosya/__init__.py)
+          if [ "$tag" != "$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match __version__ $version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  attacker:
+    needs: version
+    # A called workflow cannot have more permissions than the job that calls it.
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/attacker.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
   build:
+    needs: version
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,7 +72,8 @@ jobs:
           path: dist/
 
   publish:
-    needs: build
+    # PyPI never gets a version whose attacker image is not on GHCR.
+    needs: [build, attacker]
     runs-on: ubuntu-latest
     environment:
       name: pypi

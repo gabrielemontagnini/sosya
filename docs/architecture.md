@@ -457,6 +457,16 @@ local port is taken, unless the range's own relay holds it.
 | `127.0.0.1:L` → each forward | the service answers (the connection stays open or sends a banner) |
 | every target → the relay and the attacker box, on every address and port | blocked, run in the target's namespace script |
 
+## Attacker image
+
+`ghcr.io/gabrielemontagnini/sosya-attacker:<version>`, for linux/amd64 and linux/arm64, built
+by `.github/workflows/attacker.yml` on native runners (`ubuntu-24.04` and `ubuntu-24.04-arm`,
+no QEMU), smoke-tested, pushed as `<version>-<arch>` and joined into one multi-platform tag
+annotated with `org.opencontainers.image.source`, which links the package to the repository.
+`release.yml` calls it after checking that the tag matches `__version__`, and the PyPI job
+`needs:` it, so PyPI never gets a version without its image. It also runs by hand
+(`workflow_dispatch`). About 174 MB compressed (measured 2026-11-21): accepted for Gate 3.
+
 ## MCP server
 
 `sosya mcp` (`sosya.mcp`) is a thin layer over the functions the CLI uses (`sosya.mcp.tools`),

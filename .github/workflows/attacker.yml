@@ -1,0 +1,123 @@
+name: Attacker image
+
+# Builds the attacker box image on native runners (no QEMU) and publishes it to GHCR as
+# ghcr.io/gabrielemontagnini/sosya-attacker:<version>, for linux/amd64 and linux/arm64.
+# Called by release.yml before the PyPI publish, and runnable by hand.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: Image tag, the package version without the leading v
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Image tag (default, the __version__ in src/sosya/__init__.py)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REPOSITORY: ghcr.io/gabrielemontagnini/sosya-attacker
+  IMAGE_SOURCE: https://github.com/gabrielemontagnini/sosya
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Resolve the version
+        id: version
+        env:
+          WANTED: ${{ inputs.version }}
+        run: |
+          version="${WANTED:-$(sed -n 's/^__version__ = "\(.*\)"$/\1/p' src/sosya/__init__.py)}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+((a|b|rc)[0-9]+)?$ ]]; then
+            echo "not a release version: '$version'" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: version
+    name: build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      TAG: ${{ needs.version.outputs.version }}-${{ matrix.arch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build natively
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          docker build \
+            --platform "linux/${{ matrix.arch }}" \
+            --label "org.opencontainers.image.source=$IMAGE_SOURCE" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "$REPOSITORY:$TAG" \
+            src/sosya/attacker
+      - name: Smoke test
+        run: |
+          docker run --rm --entrypoint bash "$REPOSITORY:$TAG" -c '
+            set -euo pipefail
+            nmap --version | head -1
+            socat -V | grep -m1 "socat version"
+            for tool in microsocks sosya-forward sosya-relay curl redis-cli; do
+              command -v "$tool"
+            done
+          '
+          label=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.source" }}' "$REPOSITORY:$TAG")
+          test "$label" = "$IMAGE_SOURCE"
+      - name: Push
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker push "$REPOSITORY:$TAG"
+
+  merge:
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - name: Publish the multi-platform tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          docker buildx imagetools create \
+            --annotation "index:org.opencontainers.image.source=$IMAGE_SOURCE" \
+            --annotation "index:org.opencontainers.image.description=Attacker box for Sosya ranges" \
+            --annotation "index:org.opencontainers.image.licenses=MIT" \
+            --tag "$REPOSITORY:$VERSION" \
+            "$REPOSITORY:$VERSION-amd64" \
+            "$REPOSITORY:$VERSION-arm64"
+      - name: Check both platforms
+        run: |
+          platforms=$(docker buildx imagetools inspect --raw "$REPOSITORY:$VERSION" \
+            | jq -r '[.manifests[].platform | select(.os != "unknown") | "\(.os)/\(.architecture)"] | sort | join(",")')
+          echo "platforms: $platforms"
+          test "$platforms" = "linux/amd64,linux/arm64"
