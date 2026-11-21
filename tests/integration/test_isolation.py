@@ -90,3 +90,11 @@ def test_targets_publish_no_ports(lab: Lab, service: str) -> None:
 def test_web_pivots_to_cache(lab: Lab) -> None:
     assert lab.probe("web", "printf 'PING\\r\\n' | nc -w 3 cache 6379 | grep -q PONG")
     assert lab.probe("web", tcp("cache", 6379))
+
+
+def test_the_attacker_tools_run_in_the_box(lab: Lab) -> None:
+    """Without NET_ADMIN, a binary with that file capability does not even start."""
+    box = lab.ids["attacker"]
+    for command in ("nmap --version", "socat -V", "redis-cli --version", "curl --version"):
+        proc = docker("exec", box, "sh", "-c", command)
+        assert proc.returncode == 0, f"{command}: {proc.stderr}"

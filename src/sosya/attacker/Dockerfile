@@ -35,7 +35,10 @@ RUN apt-get update \
       vim-tiny \
       wget \
  && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/* \
+ # Kali gives nmap file capabilities that include cap_net_admin, which Docker does not grant,
+ # so exec fails with "Operation not permitted". The box runs as root and has NET_RAW.
+ && setcap -r /usr/lib/nmap/nmap
 
 # The localhost-only relay of `sosya up --proxy` and `--expose`.
 COPY --chmod=0755 sosya-forward sosya-relay /usr/local/bin/
