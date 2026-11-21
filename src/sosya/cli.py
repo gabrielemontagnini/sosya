@@ -1,16 +1,18 @@
 """Command-line interface for Sosya."""
 
-from typing import Annotated
+from pathlib import Path
+from typing import Annotated, NoReturn
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
-from sosya import __version__
+from sosya import __version__, runtime
 from sosya.catalog.display import host_platform, results_json, results_table
 from sosya.catalog.loader import load_index
 from sosya.catalog.search import DEFAULT_LIMIT, search
 from sosya.doctor import CheckResult, Status, run_checks
+from sosya.spec import RANGE_FILE, SpecError, load_range
 
 app = typer.Typer(
     name="sosya",
@@ -62,28 +64,129 @@ def new(
     _not_yet("new")
 
 
+_MARKS = {
+    "ok": "[green]ok[/]  ",
+    "warn": "[yellow]warn[/]",
+    "fail": "[red]fail[/]",
+    "info": "[dim]··[/]  ",
+}
+
+
+def _report(level: runtime.Level, text: str) -> None:
+    console.print(f"{_MARKS[level]} {text}", highlight=False)
+
+
+def _fail(exc: Exception) -> NoReturn:
+    _report("fail", str(exc))
+    raise typer.Exit(code=1)
+
+
+def _range_path(target: str) -> Path:
+    """A path to a range.yaml or its directory; else a name recorded here or under ranges/."""
+    path = Path(target)
+    if path.exists():
+        return path
+    record = runtime.state_store.load(runtime.WORKSPACE).get(target)
+    if record is not None and Path(record.source).exists():
+        return Path(record.source)
+    for candidate in (Path("ranges") / target, Path("examples") / target):
+        if (candidate / RANGE_FILE).is_file():
+            return candidate
+    _fail(SpecError(f"no range.yaml at {target}, and no range named {target} here"))
+
+
+def _range_name(target: str) -> str:
+    """A range name, or the name inside the range.yaml that `target` points to."""
+    path = Path(target)
+    if path.exists():
+        try:
+            return load_range(path).name
+        except SpecError as exc:
+            _fail(exc)
+    return target
+
+
+def _confirm_privileged(lines: list[str]) -> bool:
+    console.print("[bold red]warn[/] these services get host-level privileges:")
+    for line in lines:
+        console.print(f"     [red]![/] {line}", highlight=False)
+    return typer.confirm("Start them anyway?", default=False)
+
+
 @app.command()
-def up(name: RangeArg) -> None:
+def up(
+    target: RangeArg,
+    allow_privileged: Annotated[
+        bool,
+        typer.Option(
+            "--allow-privileged",
+            help="Allow environments that get host-level privileges, after a confirmation.",
+        ),
+    ] = False,
+) -> None:
     """Start a range from its range.yaml. No LLM needed."""
-    _not_yet("up")
+    try:
+        runtime.up(
+            _range_path(target),
+            report=_report,
+            confirm=_confirm_privileged,
+            allow_privileged=allow_privileged,
+        )
+    except (runtime.RangeError, runtime.DockerError) as exc:
+        _fail(exc)
 
 
 @app.command()
-def down(name: RangeArg) -> None:
+def down(target: RangeArg) -> None:
     """Stop a range and remove its containers and networks."""
-    _not_yet("down")
+    try:
+        runtime.down(_range_name(target), report=_report)
+    except (runtime.RangeError, runtime.DockerError) as exc:
+        _fail(exc)
 
 
 @app.command()
 def status() -> None:
     """List running ranges and the health of their services."""
-    _not_yet("status")
+    try:
+        ranges = runtime.status()
+    except runtime.DockerError as exc:
+        _fail(exc)
+    if not ranges:
+        console.print("No ranges. Start one with [bold]sosya up <range>[/].")
+        return
+    table = Table(title="sosya status", title_justify="left", header_style="bold")
+    for column in ("Range", "Service", "Role", "State", "Health"):
+        table.add_column(column)
+    for item in ranges:
+        if not item.services:
+            table.add_row(item.name, "", "", "[dim]stopped[/]", "")
+        for i, service in enumerate(item.services):
+            color = "green" if service.state == "running" else "yellow"
+            health = service.health or ""
+            if health:
+                health = f"[{'green' if health == 'healthy' else 'yellow'}]{health}[/]"
+            table.add_row(
+                item.name if i == 0 else "",
+                service.service,
+                service.role,
+                f"[{color}]{service.state}[/]",
+                health,
+            )
+    console.print(table)
+    for item in ranges:
+        if not item.local and item.location:
+            console.print(f"[dim]{item.name} was started from {item.location}[/]")
 
 
 @app.command()
-def shell(name: RangeArg) -> None:
+def shell(target: RangeArg) -> None:
     """Open a shell in the range's Kali attacker box."""
-    _not_yet("shell")
+    try:
+        code = runtime.shell(_range_name(target))
+    except (runtime.RangeError, runtime.DockerError) as exc:
+        _fail(exc)
+    raise typer.Exit(code=code)
 
 
 @app.command()

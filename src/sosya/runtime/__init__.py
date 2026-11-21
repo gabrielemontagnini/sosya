@@ -399,11 +399,14 @@ def shell(name: str, *, docker: Docker | None = None) -> int:
 
 __all__ = [
     "DockerError",
+    "Level",
     "RangeError",
     "RangeStatus",
+    "ServiceStatus",
     "Workspace",
     "down",
     "shell",
+    "state_store",
     "status",
     "up",
 ]
