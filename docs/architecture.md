@@ -529,4 +529,6 @@ Rules:
   `--allow-privileged` with a confirmation for dangerous environments (in both `up` and `new`).
 - `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment (see [MCP server](#mcp-server)).
 - `catalog/`: store the dangerous flag (with its reasons) and the image platforms in the index.
-- `validate/`: see [Live validation](#live-validation).
+- `validate/`: see [Live validation](#live-validation). CI runs every `@pytest.mark.docker` test on
+  ubuntu-latest (job `docker`), installing docker-ce when the runner's Engine is older than 28,
+  with the attacker image always built from the commit's own Dockerfile.

@@ -82,3 +82,47 @@ jobs:
               print(name, "fail" if problems else "ok")
           sys.exit(1 if failed else 0)
           '
+
+  docker:
+    name: docker tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Docker Engine 28 or newer
+        # The isolated gateway mode of internal networks needs Engine 28.0.0 (docs/architecture.md).
+        run: |
+          major=$(docker version --format '{{.Server.Version}}' | cut -d. -f1)
+          if [ "$major" -lt 28 ]; then
+            echo "Docker Engine $major.x is too old: installing the current docker-ce"
+            sudo apt-get remove -y moby-engine moby-cli moby-buildx moby-compose moby-containerd moby-runc || true
+            sudo install -m 0755 -d /etc/apt/keyrings
+            sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            gpg --show-keys --with-colons /etc/apt/keyrings/docker.asc \
+              | grep -q '^fpr:::::::::9DC858229FC7DD38854AE2D88D81803C0EBFCD88:$'
+            . /etc/os-release
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $VERSION_CODENAME stable" \
+              | sudo tee /etc/apt/sources.list.d/docker.list
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo systemctl restart docker
+          fi
+          version=$(docker version --format '{{.Server.Version}}')
+          echo "Docker Engine $version"
+          test "$(echo "$version" | cut -d. -f1)" -ge 28
+          docker compose version
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.13.9"
+      - name: Install the project
+        run: uv sync --locked
+      - name: Build the attacker image from this commit
+        # Always this commit's Dockerfile, never the image of the last release.
+        run: docker build --tag sosya-attacker:ci src/sosya/attacker
+      - name: Run the Docker tests
+        env:
+          SOSYA_ATTACKER_IMAGE: sosya-attacker:ci
+        run: uv run pytest -m docker -v
