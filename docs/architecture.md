@@ -461,7 +461,8 @@ local port is taken, unless the range's own relay holds it.
 
 `ghcr.io/gabrielemontagnini/sosya-attacker:<version>`, for linux/amd64 and linux/arm64, built
 by `.github/workflows/attacker.yml` on native runners (`ubuntu-24.04` and `ubuntu-24.04-arm`,
-no QEMU). Each build uses a `docker-container` builder and pushes by digest with OCI media
+no QEMU). Each build uses a `docker-container` builder, whose BuildKit image is pinned by tag
+and digest like the actions (`moby/buildkit:v0.34.2@sha256:...`), and pushes by digest with OCI media
 types (`oci-mediatypes=true`), because a Docker manifest list cannot carry annotations; the
 smoke test pulls the published image back by digest, since that builder does not load it
 locally. The merge job joins the two digests into one OCI index tagged `<version>`, annotated

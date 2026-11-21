@@ -25,6 +25,8 @@ permissions:
 env:
   REPOSITORY: ghcr.io/gabrielemontagnini/sosya-attacker
   IMAGE_SOURCE: https://github.com/gabrielemontagnini/sosya
+  # The builder's BuildKit, pinned by tag and digest like the actions.
+  BUILDKIT_IMAGE: moby/buildkit:v0.34.2@sha256:c5f8862f52499773af85bc07695b2379ef08e8002352b0df2c4864c91d78dabe
 
 jobs:
   version:
@@ -75,7 +77,9 @@ jobs:
         env:
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          docker buildx create --name sosya --driver docker-container --use
+          docker buildx create --name sosya --driver docker-container \
+            --driver-opt "image=$BUILDKIT_IMAGE" --use
+          docker buildx inspect --bootstrap sosya | grep -E "^BuildKit version: +v0\.34\.2$"
           docker buildx build \
             --platform "linux/${{ matrix.arch }}" \
             --provenance=false \
