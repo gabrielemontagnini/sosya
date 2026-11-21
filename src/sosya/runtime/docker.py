@@ -37,6 +37,7 @@ class ContainerInfo:
     health: str | None
     config_files: str
     working_dir: str
+    exit_code: int = 0
 
     @classmethod
     def from_inspect(cls, data: dict[str, Any]) -> "ContainerInfo":
@@ -54,6 +55,7 @@ class ContainerInfo:
             health=health.get("Status") if isinstance(health, dict) else None,
             config_files=labels.get(LABEL_CONFIG_FILES, ""),
             working_dir=labels.get(LABEL_WORKING_DIR, ""),
+            exit_code=int(state.get("ExitCode") or 0),
         )
 
 

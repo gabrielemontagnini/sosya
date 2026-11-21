@@ -1,5 +1,6 @@
 """Command-line interface for Sosya."""
 
+import time
 from pathlib import Path
 from typing import Annotated, NoReturn
 
@@ -199,9 +200,41 @@ def shell(target: RangeArg) -> None:
 
 
 @app.command()
-def validate(name: RangeArg) -> None:
-    """Re-run every check on an existing range."""
-    _not_yet("validate")
+def validate(target: RangeArg) -> None:
+    """Re-run every check on a running range: services, reachability, isolation and flags."""
+    from sosya import validate as checks_module
+
+    name = _range_name(target)
+    started = time.monotonic()
+    try:
+        with console.status(f"validating {name}"):
+            checks = checks_module.validate(name)
+    except (runtime.RangeError, runtime.DockerError) as exc:
+        _fail(exc)
+    console.print(validation_table(name, checks))
+    failed = checks_module.failures(checks)
+    elapsed = time.monotonic() - started
+    passed = sum(1 for check in checks if check.level == "check" and check.ok)
+    total = sum(1 for check in checks if check.level == "check")
+    if failed:
+        _report("fail", f"{len(failed)} of {total} checks failed ({elapsed:.0f}s)")
+        raise typer.Exit(code=1)
+    _report("ok", f"{passed}/{total} checks passed ({elapsed:.0f}s)")
+
+
+def validation_table(name: str, checks: list) -> Table:
+    table = Table(title=f"sosya validate {name}", title_justify="left", header_style="bold")
+    for column in ("Check", "Target", "Result", "Detail"):
+        table.add_column(column)
+    for check in checks:
+        if check.ok:
+            result = "[green]ok[/]"
+        elif check.level == "warning":
+            result = "[yellow]warn[/]"
+        else:
+            result = "[red]fail[/]"
+        table.add_row(check.group, check.target, result, check.detail)
+    return table
 
 
 @app.command()

@@ -400,3 +400,71 @@ def test_vulhub_download_is_sparse_and_pinned(
     assert sparse == ["sparse-checkout", "set", "--no-cone", "/samba/CVE-2017-7494/"]
     fetch = next(c for c in calls if c[0] == "fetch")
     assert fetch[-1] == VULHUB_COMMIT and "--filter=blob:none" in fetch
+
+
+# --- one-shot services ----------------------------------------------------------------------
+
+
+def one_shot(service: str, state: str, exit_code: int = 0, health: str | None = None) -> dict:
+    data = container(service, state=state)
+    data["State"]["ExitCode"] = exit_code
+    if health:
+        data["State"]["Health"] = {"Status": health}
+    return data
+
+
+def test_a_one_shot_that_exited_zero_does_not_fail_up(
+    range_dir: Path, workspace: runtime.Workspace, fake: FakeDocker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(runtime.time, "sleep", lambda s: None)
+    fake.containers = [one_shot("web", "running"), one_shot("cache", "exited", 0)]
+    error = "container sosya-dmz-redis-cache-1 exited (0)"
+    fake.on(lambda a: a[:1] == ["compose"] and "up" in a, lambda a: done(code=1, stderr=error))
+    _, log = start(range_dir, workspace, fake)
+    assert ("ok", "cache ran once and completed") in log.lines
+
+
+def test_waits_for_the_others_after_a_one_shot(fake: FakeDocker) -> None:
+    states = iter(["starting", "starting", "healthy"])
+    sleeps: list[float] = []
+
+    def ps_then_inspect(args: list[str]) -> Any:
+        fake.containers = [
+            one_shot("web", "running", health=next(states)),
+            one_shot("init", "exited"),
+        ]
+        return done("\n".join(c["Id"] for c in fake.containers))
+
+    fake.on(lambda a: a[:1] == ["ps"], ps_then_inspect)
+    assert runtime._wait_past_one_shots(
+        Docker(runner=fake), "sosya-dmz-redis", 1e12, sleep=sleeps.append
+    )
+    assert len(sleeps) == 2
+
+
+@pytest.mark.parametrize(
+    "containers",
+    [
+        [one_shot("web", "running"), one_shot("init", "exited", 1)],
+        [one_shot("web", "running", health="unhealthy"), one_shot("init", "exited")],
+        [one_shot("web", "exited", 2)],
+        [one_shot("web", "running", health="starting")],  # no one-shot: a real failure
+    ],
+)
+def test_real_failures_still_fail(fake: FakeDocker, containers: list[dict]) -> None:
+    fake.containers = containers
+    assert not runtime._wait_past_one_shots(
+        Docker(runner=fake), "sosya-dmz-redis", 0, sleep=lambda s: None
+    )
+
+
+def test_the_wait_ends_at_the_deadline(fake: FakeDocker) -> None:
+    fake.containers = [one_shot("web", "running", health="starting"), one_shot("init", "exited")]
+    clock = iter([0.0, 5.0, 11.0])
+    assert not runtime._wait_past_one_shots(
+        Docker(runner=fake),
+        "sosya-dmz-redis",
+        10.0,
+        sleep=lambda s: None,
+        clock=lambda: next(clock),
+    )

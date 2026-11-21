@@ -312,6 +312,40 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   then CVE links, the Vulhub page at the pinned commit and the references. `sosya up` writes it
   next to the compose file and prints its path with `sosya shell <name>`.
 
+## Live validation
+
+`sosya validate <range>` (also run by `sosya new`, and by CI on the gallery) checks a running
+range. The CI integration test calls the same function, so every user's range gets the same
+isolation checks as CI.
+
+| Group | Check | Pass when |
+| --- | --- | --- |
+| service | every container | running (healthy, with a healthcheck), or exited 0 (one-shot) |
+| reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s |
+| segmentation | attacker → containers on no shared network, by name and by IP | unresolved or refused |
+| no internet | every target namespace: DNS, TCP v4 and v6, HTTP, default route | all fail |
+| host isolation | published ports; host → every target IP and port | none; refused |
+| attacker | `net.ipv4.ip_forward` | `0` |
+| attacker | internet access, when `internet: true` | warning only: never fails the range, never sent to the LLM |
+| flag | `docker cp` of each flag | the value recorded at `up` |
+
+Speed matters, because `validate` runs in the demo: all the checks of a network namespace go
+into one shell script, so the attacker costs one `docker exec` and each target one
+`docker run --rm --network container:<id>`. Targets are probed with the attacker image, which
+is already present and has the tools; the target image may have none, and nothing extra is
+pulled. Readiness retries run inside the script, and the namespaces run in parallel. The
+dmz-redis range validates 25 checks in about 3 seconds. The exit code is 1 when a check fails.
+
+### One-shot services
+
+Some environments have a service that runs once and exits, such as `airflow-init` or the
+`initd` of `couchdb/CVE-2017-12635`. Measured with Compose v5.8.0: `up --wait` already treats
+an exit code of 0 as done and keeps waiting for the other services. For other Compose versions,
+`sosya up` does not trust a failed `up --wait` on its own: if every stopped container exited
+with 0, it keeps polling the others until the same deadline, and fails only on an exit code
+other than 0, an unhealthy service or the deadline. `sosya validate` counts an exit code of 0 as
+a success.
+
 ## Implications for `render/` and `runtime/`
 
 - `render/`: apply rules 1-8 above. Every segment network gets `internal: true`,
@@ -335,5 +369,4 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   `--allow-privileged` with a confirmation for dangerous environments (in both `up` and `new`).
 - `mcp/`: reject any plan or `range.yaml` that contains a dangerous environment.
 - `catalog/`: store the dangerous flag (with its reasons) and the image platforms in the index.
-- `validate/`: reuse the spike's checks as post-`up` probes: attacker → each declared service by
-  name, and that no target has a default route.
+- `validate/`: see [Live validation](#live-validation).

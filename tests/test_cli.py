@@ -27,7 +27,7 @@ def test_help_lists_every_command() -> None:
 
 
 def test_unimplemented_command_fails_clearly() -> None:
-    result = runner.invoke(app, ["validate", "lab"])
+    result = runner.invoke(app, ["new", "a struts2 lab"])
     assert result.exit_code == 1
     assert "not implemented yet" in result.output
 
@@ -149,3 +149,37 @@ def test_status_shows_every_range(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_status_without_ranges(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(runtime, "status", lambda: [])
     assert "No ranges" in runner.invoke(app, ["status"]).output
+
+
+def test_validate_prints_a_table_and_fails_on_a_failed_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from sosya import validate as checks_module
+    from sosya.validate import Check
+
+    results = [
+        Check("reach", "web:8080", True, "reachable"),
+        Check("attacker", "internet access", False, "failed", level="warning"),
+    ]
+    monkeypatch.setattr(checks_module, "validate", lambda name: results)
+    result = runner.invoke(app, ["validate", "lab"])
+    assert result.exit_code == 0, result.output
+    assert "web:8080" in result.output and "warn" in result.output
+    assert "1/1 checks passed" in result.output
+
+    results.append(Check("flag", "web", False, "/flag.txt missing or changed"))
+    result = runner.invoke(app, ["validate", "lab"])
+    assert result.exit_code == 1
+    assert "1 of 2 checks failed" in result.output
+
+
+def test_validate_of_a_range_that_is_not_running(monkeypatch: pytest.MonkeyPatch) -> None:
+    from sosya import validate as checks_module
+
+    def missing(name: str):
+        raise runtime.RangeError(f"no range named {name} was started from this directory")
+
+    monkeypatch.setattr(checks_module, "validate", missing)
+    result = runner.invoke(app, ["validate", "ghost"])
+    assert result.exit_code == 1
+    assert "no range named ghost" in result.output

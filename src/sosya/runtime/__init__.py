@@ -2,6 +2,7 @@
 
 import shutil
 import sys
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -162,6 +163,47 @@ def _up_failure(stderr: str, docker: Docker, name: str) -> RangeError:
     return RangeError(f"docker compose up failed:\n{_tail(stderr)}")
 
 
+def _completed(container: ContainerInfo) -> bool:
+    """A one-shot service (such as `airflow-init`) that finished its job."""
+    return container.state == "exited" and container.exit_code == 0
+
+
+def _ready(container: ContainerInfo) -> bool:
+    return container.state == "running" and container.health in (None, "healthy")
+
+
+def _wait_past_one_shots(
+    docker: Docker,
+    project: str,
+    deadline: float,
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> bool:
+    """After a failed `up --wait`: True if it failed only because one-shot services exited 0.
+
+    The other services may still be starting, so keep polling them until the same deadline.
+    """
+    while True:
+        found = docker.containers(project)
+        if not found:
+            return False
+        broken = [
+            c
+            for c in found
+            if (c.state == "exited" and c.exit_code != 0)
+            or c.health == "unhealthy"
+            or c.state in ("dead", "restarting")
+        ]
+        if broken or not any(_completed(c) for c in found):
+            return False
+        if all(_completed(c) or _ready(c) for c in found):
+            return True
+        if clock() >= deadline:
+            return False
+        sleep(2)
+
+
 def up(
     path: Path,
     *,
@@ -258,11 +300,14 @@ def up(
         raise RangeError(f"docker compose rejected the rendered file:\n{_tail(checked.stderr)}")
     _pull_missing(docker, compose, report)
     report("info", "starting containers")
+    deadline = time.monotonic() + WAIT_TIMEOUT
     started = docker.compose(
         project, compose_file, "up", "--detach", "--wait", "--wait-timeout", str(WAIT_TIMEOUT)
     )
-    if started.returncode != 0:
+    if started.returncode != 0 and not _wait_past_one_shots(docker, project, deadline):
         raise _up_failure(started.stderr, docker, spec.name)
+    for done_once in [c for c in docker.containers(project) if _completed(c)]:
+        report("ok", f"{done_once.service} ran once and completed")
     report("ok", f"range {spec.name} is up")
 
     record = _place_flags(spec, record, docker, report)
