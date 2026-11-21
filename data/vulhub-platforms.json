@@ -1,0 +1,2584 @@
+{
+ "images": {
+  "apache/kafka:3.7.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "budibase/couchdb:v3.3.3-sqs-v2.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "buildpack-deps:focal-curl": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "elasticsearch:7.9.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "gcr.io/etcd-development/etcd:v3.4.15": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "imagetools"
+  },
+  "mariadb:10.11.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "minio/minio:RELEASE.2025-09-07T16-13-09Z": {
+   "error": "minio/minio:RELEASE.2025-09-07T16-13-09Z not found on Docker Hub",
+   "platforms": null,
+   "source": "hub-api"
+  },
+  "mongo:3.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64",
+    "windows/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mongo:4.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64",
+    "windows/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mongo:5.0.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64",
+    "windows/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mongo:7.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64",
+    "windows/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mysql:5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mysql:5.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mysql:5.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "mysql:8.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "mysql:8.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "nginx:1": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v5",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "nginx:1-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgis/postgis:14-3.3-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:10.7-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:11.9-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:12-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:12.8-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:13-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:15.4-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:17-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:9.6": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v5",
+    "linux/arm/v7",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "postgres:9.6-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "python:3.6-alpine3.9": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v5",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:4.0.14-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:5-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:5.0.9-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:6.2-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:6.2.13": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v5",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/mips64le",
+    "linux/ppc64le",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:7-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "redis:7.4-alpine": {
+   "error": null,
+   "platforms": [
+    "linux/386",
+    "linux/amd64",
+    "linux/arm/v6",
+    "linux/arm/v7",
+    "linux/arm64",
+    "linux/ppc64le",
+    "linux/riscv64",
+    "linux/s390x"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/1panel:1.10.10": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/activemq:5.11.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/activemq:5.11.1-with-cron": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/activemq:5.17.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/activemq:6.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/activemq:6.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/adminer:4.6.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/adminer:4.7.8": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/aiohttp:3.9.1": {
+   "error": null,
+   "platforms": [
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/airflow:1.10.10": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/aj-report:1.4.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apache-cxf:3.2.14": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apache-druid:0.20.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apache-druid:25.0.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apereo-cas:4.1.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apisix-dashboard:2.9.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apisix:2.11.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/apisix:2.9": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/appweb:7.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/aria2:1.18.8": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/baselinux:centos-6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/bash:4.3.0-with-httpd": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/bind:9.10.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/budibase:3.31.4-apps": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/budibase:3.31.4-proxy": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/budibase:3.31.4-worker": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/cacti:1.2.22": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/cacti:1.2.24": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/cacti:1.2.28": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/celery:3.1.23": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/chartbrew:4.8.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/cmsms:2.2.9.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/coldfusion:11u3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/coldfusion:2018.0.15": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/coldfusion:8.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/comfyui:3.37-with-manager": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/comfyui:3.39.1-with-manager": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/confluence:6.10.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/confluence:7.13.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/confluence:7.4.10": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/confluence:8.5.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/confluence:8.5.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/couchdb:1.6.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/couchdb:2.1.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/couchdb:3.2.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/craftcms:4.4.14": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/craftcms:5.5.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/craftcms:5.6.16": {
+   "error": "vulhub/craftcms:5.6.16 not found on Docker Hub",
+   "platforms": null,
+   "source": "hub-api"
+  },
+  "vulhub/cups-browsed:2.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/dataease:2.10.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/dataease:2.10.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/discuz:7.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/discuz:x3.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:1.11.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:2.0.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:2.2.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:3.0.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:3.2.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/django:4.0.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/docker:28.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/drupal:7.31": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/drupal:7.57": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/drupal:8.3.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/drupal:8.5.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/dubbo:2.7.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ecshop:2.7.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ecshop:3.6.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ecshop:4.0.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:1.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:1.4.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:1.4.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:1.5.1-with-tomcat": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:1.6.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:5.6.16": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:6.8.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elasticsearch:7.6.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/electron:wine": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/elfinder:2.1.58": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/erlang:27.3.2-with-ssh": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/fastjson:1.2.24": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/fastjson:1.2.45": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/fastjson:1.2.83": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ffmpeg:2.8.4-with-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ffmpeg:3.2.4-with-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/flask:1.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/flink:1.11.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/geoserver:2.17.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/geoserver:2.19.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/geoserver:2.22.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/geoserver:2.23.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ghostscript:9.21-with-flask": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ghostscript:9.23-with-flask": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/git:2.12.2-with-openssh": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitea:1.4.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitlab:13.10.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitlab:19.3.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitlab:19.4.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitlab:8.13.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gitlist:0.6.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/glassfish:4.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/goahead:3.6.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/goahead:5.1.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gogs:0.11.66": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gotenberg:8.30.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gradio:4.10.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/gradio:4.12.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/grafana:11.0.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/grafana:8.2.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/grafana:8.5.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/hadoop:2.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/hertzbeat:1.4.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/httpd:2.4.43": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/httpd:2.4.49": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/httpd:2.4.50": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/hugegraph:1.2.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/hugegraph:1.3.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:6.9.2-10-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:7.0.10-36": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:7.0.8-10-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:7.0.8-20-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:7.0.8-27-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/imagemagick:7.1.0-49-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/inetutils:2.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/influxdb:1.6.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ingress-nginx:1.9.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/j2ee:8u111": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/j2ee:8u131": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/j2ee:8u222": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jboss:as-4.0.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jboss:as-6.1.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jenkins:2.138": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jenkins:2.441": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jenkins:2.46.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jetty:9.4.37": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jetty:9.4.40": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jimureport:1.6.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jira:8.1.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jmeter:3.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/joomla:3.4.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/joomla:3.7.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/joomla:4.2.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jumpserver:3.6.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/jupyter-notebook:5.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/kibana:5.6.12": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/kibana:6.5.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/kibana:7.6.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/kkfileview:4.3.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/langflow:1.2.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/langflow:1.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/laravel:8.4.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/librsvg:2.50.7-php": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/libssh:0.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/liferay-portal:7.2.0-ga1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/linkis:1.3.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/livewire:3.6.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/log4j:2.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/magento:2.2.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/metabase:0.40.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/metabase:0.46.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/metersphere:1.15.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/metersphere:1.16.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/mini_httpd:1.29": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/minio:2023-02-27T18-10-45Z": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/mojarra:2.1.28": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/mongo-express:0.53.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/mysql:5.5.23": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/n8n:1.65.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nacos:1.4.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/neo4j:3.4.18": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nextjs:15.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nextjs:15.5.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nexus:3.14.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nexus:3.21.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nexus:3.68.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nginx-ui:2.3.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nginx:1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nginx:1.11.13": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nginx:1.13.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/nginx:1.4.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/node:8.5.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/node:9.0.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ntopng:4.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ofbiz:17.12.01": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ofbiz:18.12.09": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ofbiz:18.12.10": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ofbiz:18.12.14": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ofbiz:18.12.15": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/openclaw:2026.1.28": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/openfire:4.7.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/opensmtpd:6.6.1p1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/openssh:7.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/openssl:1.0.1c-with-nginx": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/openssl:1.1.1m-with-curl": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/opentsdb:2.4.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/opentsdb:2.4.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/oracle:12c-ee": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/owncloud:10.12.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/pdfjs:4.1.392": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/pgadmin:6.16": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/pgadmin:7.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/pgadmin:9.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/pgadmin:9.10": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:5.4.1-cgi": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:5.5-apache": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:5.6-fpm": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:5.6.38-apache": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.0.30": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.1-xdebug": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.1.3-apache": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.1.3-fpm": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.2.10-fpm": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.4-xdebug": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:7.4.33-apache": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:8.1-backdoor": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:8.3.4-apache": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/php:httpoxy": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/phpmailer:5.2.20": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/phpmyadmin:2.8.0.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/phpmyadmin:4.4.15.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/phpmyadmin:4.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/phpunit:5.6.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/polkit:0.105": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/postgres:10.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/postgres:9.6.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/rails:5.0.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/rails:5.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/redis:4.0.14": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/redis:5.0.7": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/rocketchat:3.12.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/rocketmq:5.1.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/rsync:3.1.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/ruby:2.4.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/saltstack:2019.2.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/saltstack:3002": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/samba:4.6.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/scrapyd:1.2.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/shiro:1.0.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/shiro:1.2.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/shiro:1.5.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/showdoc:2.8.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/showdoc:3.2.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/skywalking:8.3.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/solr:7.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/solr:8.1.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/solr:8.11.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/solr:8.2.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/solr:8.8.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spark:2.3.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-boot-jetty:3.2.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-cloud-function:3.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-cloud-gateway:3.1.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-data-commons:2.0.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-messaging:5.0.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-rest-data:2.6.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-security-oauth2:2.0.8": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-security:5.6.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-webflow:2.4.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-webmvc:5.3.17": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-with-h2database:1.4.197": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-with-h2database:2.0.204": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-with-h2database:2.0.206": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/spring-with-jackson:2.8.8": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.3.28": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.3.30": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.3.32-showcase": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.3.34-showcase": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.5.12-rest-showcase": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.5.16": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:2.5.25": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:s2-053": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:s2-066": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/struts2:s2-067": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/superset:2.0.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/supervisor:3.3.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/teamcity:2023.05.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/teamcity:2023.11.3": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/thinkphp:2.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/thinkphp:5.0.20": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/thinkphp:5.0.23": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/thinkphp:5.0.9": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/thinkphp:6.0.12": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tikiwiki:21.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:8.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:8.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:8.5.19": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:9.0.116": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:9.0.30": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/tomcat:9.0.97": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/unomi:1.5.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/uwsgi-php:2.0.16": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/uwsgi-python:2.0.17": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/v2board:1.6.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/vite:2.1.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/vite:6.2.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/vite:6.2.5": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/vite:7.3.1": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/weblogic:10.3.6.0-2017": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/weblogic:12.2.1.3-2018": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/webmin:1.910": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/wordpress:4.6": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/wordpress:6.9.4": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/xstream:1.4.15": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/xstream:1.4.16": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/xxl-job:2.2.0-admin": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/xxl-job:2.2.0-executor": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/yapi:1.10.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/yapi:1.9.2": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/zabbix:3.0.3-server": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "vulhub/zabbix:3.0.3-web": {
+   "error": null,
+   "platforms": [
+    "linux/amd64"
+   ],
+   "source": "hub-api"
+  },
+  "zookeeper:3.7.0": {
+   "error": null,
+   "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+   ],
+   "source": "hub-api"
+  }
+ }
+}

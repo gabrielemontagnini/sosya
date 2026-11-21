@@ -168,11 +168,38 @@ Consequences:
 ### Platforms in the catalog index
 
 The catalog index stores the platforms of every image it references, for example
-`"platforms": ["linux/amd64"]`. The builder reads them with the method used above: the manifest
-list's `platform` entries, ignoring `unknown/unknown` attestation entries, or the image config's
-`os`/`architecture` fields for a single manifest. For a `build:` service, it reads the platforms of
-the `FROM` image. With this data, `sosya doctor` and the planner can warn for each range, before
+`"platforms": ["linux/amd64"]`. For a `build:` service, it stores the platforms of the final
+`FROM` image. With this data, `sosya doctor` and the planner can warn for each range, before
 anything is pulled, when the host's architecture is not among an image's platforms.
+
+Detection is a separate, resumable development step (`python -m sosya.catalog.build platforms`)
+with a committed cache in `data/vulhub-platforms.json`, written after every image:
+
+1. **Docker Hub images: the Docker Hub web API**,
+   `hub.docker.com/v2/repositories/<namespace>/<repo>/tags/<tag>`, field `images` (`os`,
+   `architecture`, `variant`; `unknown/unknown` attestation entries are ignored). This API does
+   not touch the registry, so it does not use up the registry pull limit that `sosya up` needs.
+   Measured on 2026-11-21: the anonymous registry counter (`ratelimit-remaining` on a `HEAD` of
+   `ratelimitpreview/test`, which does not count as a pull) read `100;w=3600` before and after a
+   full run of 346 API lookups. The web API has its own limit (`x-ratelimit-limit: 180`); on a
+   short `429` the builder waits for `x-ratelimit-reset`, on a long one it saves and stops.
+2. **Fallback: `docker buildx imagetools inspect`**, for other registries and for Docker Hub
+   images when the web API does not answer. It reads the manifest list's `platform` entries, or
+   the image config's `os`/`architecture` for a single manifest. On Docker Hub this reads
+   manifests from the registry and counts against the pull limit, so it runs only when
+   `docker login` has stored Docker Hub credentials.
+
+Results at the pinned commit (347 distinct images: 346 from the web API, 1 from `gcr.io` via
+`imagetools`):
+
+| Environments | Platforms |
+| --- | --- |
+| 326 | `linux/amd64` only |
+| 5 | `linux/amd64` and `linux/arm64` |
+| 1, `python/CVE-2024-23334` | `linux/arm64` only: `vulhub/aiohttp:3.9.1` is a single arm64 manifest |
+| 2, `craftcms/CVE-2025-32432`, `budibase/CVE-2026-31816` | unknown: `vulhub/craftcms:5.6.16` does not exist (registry `404`); the pinned `minio/minio` tag is no longer public (`401`) |
+
+The three environments in the last two rows do not start on an amd64 host as they are.
 
 ## Implications for `render/` and `runtime/`
 
