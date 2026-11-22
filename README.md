@@ -1,5 +1,9 @@
 # Sosya
 
+[![CI](https://github.com/gabrielemontagnini/sosya/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielemontagnini/sosya/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/sosya)](https://pypi.org/project/sosya/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://github.com/gabrielemontagnini/sosya/blob/main/LICENSE)
+
 **Describe a hacking lab in plain English. Get it running, isolated and verified.**
 
 > Status: pre-release. Sosya v0.1 ships on November 24, 2026. Until then, install it from the
@@ -54,8 +58,9 @@ printed or logged.
   needed for the isolated gateway mode of internal networks.
 - Python 3.12 or newer.
 - Tested on Linux (x86_64). macOS with Docker Desktop should work but is **not verified yet**:
-  if you try it, please [open an issue](https://github.com/gabrielemontagnini/sosya/issues) with
-  the output of `sosya doctor`. On Apple Silicon, nearly every Vulhub image is amd64 only and
+  if you try it, please
+  [report how it went](https://github.com/gabrielemontagnini/sosya/issues/new?template=macos.yml)
+  with the output of `sosya doctor`. On Apple Silicon, nearly every Vulhub image is amd64 only and
   runs under emulation, so it is slower, and Java applications (Jenkins, Solr, Struts2) can take
   minutes to start.
 
@@ -77,7 +82,9 @@ sentence → catalog search → LLM planner → range.yaml (you approve it)
   reachable from the host, and the flags are all checked.
 - **Visible repair loop.** Schema errors and failed checks go back to the planner with the logs,
   at most 3 attempts in all, one line per step on screen.
-- **Shareable.** A `range.yaml` runs anywhere with `sosya up`, with no LLM.
+- **Shareable.** A `range.yaml` runs anywhere with `sosya up`, with no LLM. You can also write
+  one by hand: the format is in
+  [`docs/range-yaml.md`](https://github.com/gabrielemontagnini/sosya/blob/main/docs/range-yaml.md).
 - **No exploits.** Sosya composes public, documented images. `SCENARIO.md` gives objectives,
   progressive hints and links to the CVEs, not attack steps.
 
@@ -140,6 +147,8 @@ escape trivial by design, and that is why they ask for consent.
 
 Design decisions and the measurements behind them are in
 [`docs/architecture.md`](https://github.com/gabrielemontagnini/sosya/blob/main/docs/architecture.md).
+Found a way around the isolation? Please report it privately, as described in
+[SECURITY.md](https://github.com/gabrielemontagnini/sosya/blob/main/SECURITY.md).
 
 ## For AI agents: `sosya mcp`
 
@@ -205,6 +214,15 @@ v0.1 is Docker Compose and Linux containers only. Under consideration for v0.2, 
 
 Out of scope: VMs, Windows and Active Directory, a web UI, exploit generation, multi-user or
 hosted modes.
+
+## Contributing
+
+Bug reports, macOS test reports, gallery ranges and catalog fixes are welcome. Setup, tests, the
+rules every change keeps, and how to add a gallery range or run the planner evaluation with your
+own key are in
+[CONTRIBUTING.md](https://github.com/gabrielemontagnini/sosya/blob/main/CONTRIBUTING.md).
+Report vulnerabilities privately, following
+[SECURITY.md](https://github.com/gabrielemontagnini/sosya/blob/main/SECURITY.md).
 
 ## Responsible use
 
