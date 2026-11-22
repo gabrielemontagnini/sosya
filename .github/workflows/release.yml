@@ -1,4 +1,6 @@
-name: Release to PyPI
+name: Release
+
+# Tag vX.Y.Z (or vX.Y.ZrcN, aN, bN): attacker image on GHCR, then PyPI, then the GitHub release.
 
 on:
   push:
@@ -14,6 +16,7 @@ jobs:
       contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -29,6 +32,16 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ "$version" =~ (a|b|rc)[0-9]+$ ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check that CHANGELOG.md has the release notes
+        # Before anything is published: a missing section stops the release here.
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: .github/scripts/release-notes.sh "$VERSION" > /dev/null
 
   attacker:
     needs: version
@@ -94,3 +107,38 @@ jobs:
         uses: astral-sh/attest-action@39b6ce43875c196a579e31635b11aa2a2036384a # v0.0.7
       - name: Publish
         run: uv publish
+
+  github-release:
+    # Only once PyPI has the version.
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download distributions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist
+          path: dist/
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.version.outputs.version }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          .github/scripts/release-notes.sh "$VERSION" > notes.md
+          if [ "$PRERELEASE" = "true" ]; then
+            kind=--prerelease
+          else
+            kind=--latest
+          fi
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --verify-tag \
+            --title "Sosya $VERSION" \
+            --notes-file notes.md \
+            "$kind"
