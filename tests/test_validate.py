@@ -131,6 +131,7 @@ def test_a_healthy_range_passes_every_check(lab: Lab) -> None:
     assert groups == {
         "service",
         "reach",
+        "callback",
         "segmentation",
         "no internet",
         "host isolation",
@@ -142,11 +143,13 @@ def test_a_healthy_range_passes_every_check(lab: Lab) -> None:
     segmentation = by(checks, "segmentation")
     assert "cache (dns)" in segmentation and "cache 10.0.2.3:6379 (internal)" in segmentation
     assert set(by(checks, "flag")) == {"web", "cache"}
+    # cache shares no segment with the attacker box: it gets no callback check
+    assert set(by(checks, "callback")) == {"web → attacker (dmz)"}
 
 
 def test_one_script_per_namespace(lab: Lab) -> None:
     lab.run()
-    execs = lab.fake.commands("exec")
+    execs = [e for e in lab.fake.commands("exec") if e[1] != "-d" and e[2] != "pkill"]
     runs = lab.fake.commands("run")
     assert len(execs) == 1  # the attacker box
     assert len(runs) == 2  # web and cache, each probed in its own namespace
@@ -265,3 +268,27 @@ def test_a_closed_optional_port_is_only_a_warning(lab: Lab) -> None:
 def test_an_open_optional_port_passes_quietly(lab: Lab) -> None:
     checks = lab.run(index=_with_optional_web_port(8080))
     assert all(c.ok for c in checks if c.target.startswith("web") and c.group == "reach")
+
+
+def test_the_callback_listener_binds_only_the_shared_segment(lab: Lab) -> None:
+    lab.run()
+    listeners = [e for e in lab.fake.commands("exec") if e[1] == "-d"]
+    (listener,) = listeners
+    assert listener[2] == "attacker0000"
+    (listen,) = [arg for arg in listener if arg.startswith("TCP-LISTEN:")]
+    port = int(listen.split(":", 1)[1].split(",", 1)[0])
+    assert 40000 <= port <= 59999
+    assert f"bind={IPS['attacker']['dmz']}," in listen  # never egress or relay
+    stops = [e for e in lab.fake.commands("exec") if e[2:4] == ["pkill", "-f"]]
+    assert stops == [["exec", "attacker0000", "pkill", "-f", f"TCP-LISTEN:{port},"]]
+    web = next(s for where, s in lab.scripts.items() if where.startswith("container:web"))
+    assert f"/dev/tcp/{IPS['attacker']['dmz']}/{port}" in web
+
+
+def test_a_failed_callback_fails_with_its_host(lab: Lab) -> None:
+    lab.failing = {f"/dev/tcp/{IPS['attacker']['dmz']}/"}
+    failed = failures(lab.run())
+    assert [(c.group, c.target, c.host) for c in failed] == [
+        ("callback", "web → attacker (dmz)", "web")
+    ]
+    assert "no connection" in failed[0].detail

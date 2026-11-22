@@ -10,7 +10,10 @@
 5. the host cannot reach the targets: no published port, no connection to their IPs;
 6. the attacker box does not forward packets; its internet access is only a warning;
 7. every flag is in place, with the value recorded at `up`;
-8. with `--proxy` or `--expose`: the relay publishes on 127.0.0.1 only (not on ::1 or the
+8. callback: every target opens a TCP connection to the attacker box on each segment they
+   share, as a reverse shell or a JNDI callback needs. A short-lived listener runs in the box
+   for the duration of the checks, bound only to its segment addresses;
+9. with `--proxy` or `--expose`: the relay publishes on 127.0.0.1 only (not on ::1 or the
    host's own addresses), the proxy reaches the services the attacker box reaches and, without
    internet, nothing else, every forward answers, and no target can use the proxy or the relay.
 
@@ -18,6 +21,7 @@ Checks are batched (one script per network namespace) and run in parallel across
 """
 
 import json
+import random
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -41,6 +45,8 @@ from sosya.validate import probes, socks
 from sosya.validate.probes import Probe
 
 READY_TIMEOUT = 90
+CALLBACK_PORTS = (40000, 59999)
+"""The listener for the callback checks takes a random port in this range, once per run."""
 """Seconds a service may take to start listening after its container runs."""
 FALLBACK_PORT = 80
 
@@ -255,8 +261,18 @@ NO_INTERNET = (
 )
 
 
+def _callbacks(lab: "_Range", container: topology.Container) -> list[tuple[str, str]]:
+    """(segment, attacker box address) of every segment the container shares with the box."""
+    box = lab.ips(topology.ATTACKER)
+    shared = set(container.segments) & set(lab.attacker().segments)
+    return [(network, box[network]) for network in sorted(shared) if network in box]
+
+
 def _namespace_probes(
-    container: topology.Container, relay_targets: list[tuple[str, str, int]] = ()
+    container: topology.Container,
+    relay_targets: list[tuple[str, str, int]] = (),
+    callbacks: list[tuple[str, str]] = (),
+    callback_port: int = 0,
 ) -> list[_Planned]:
     planned = [
         _Planned(
@@ -274,6 +290,17 @@ def _namespace_probes(
                 Probe(f"n{len(NO_INTERNET) + i}", "block", probes.tcp(address, port)),
                 "exposure",
                 f"{container.key} → {what} {address}:{port}",
+                container.host,
+            )
+        )
+    # A reverse shell or a JNDI callback needs the target to connect back to the attacker box.
+    start = len(planned)
+    for i, (network, address) in enumerate(callbacks):
+        planned.append(
+            _Planned(
+                Probe(f"n{start + i}", "reach", probes.tcp(address, callback_port)),
+                "callback",
+                f"{container.key} → attacker ({network})",
                 container.host,
             )
         )
@@ -303,6 +330,8 @@ def _results(planned: list[_Planned], results: dict[str, bool]) -> list[Check]:
             detail = "blocked" if ok else "the target reaches the internet"
         elif item.group == "exposure":
             detail = "blocked" if ok else "the target can use the relay"
+        elif item.group == "callback":
+            detail = "connected" if ok else f"no connection within {READY_TIMEOUT}s"
         elif item.group == "reach":
             detail = "reachable" if ok else f"no answer within {READY_TIMEOUT}s"
             if not ok and item.level == "warning":
@@ -444,6 +473,7 @@ def _exposure_checks(lab: _Range, exposure: Exposure, ready_timeout: int) -> lis
 GROUP_ORDER = (
     "service",
     "reach",
+    "callback",
     "segmentation",
     "no internet",
     "host isolation",
@@ -486,6 +516,82 @@ def validate(
         for c in lab.targets()
         if c.shares_network_of is None and (i := lab.info(c.key)) and i.state == "running"
     ]
+    callbacks = {
+        c.key: _callbacks(lab, c) if box and box.state == "running" else [] for c in namespaces
+    }
+    port = _callback_port(exposure)
+    listening = _listen(docker, box.id, callbacks, port, ready_timeout) if box else []
+    try:
+        checks = _run_checks(
+            lab,
+            docker,
+            box,
+            attacker_planned,
+            namespaces,
+            image,
+            relay_targets,
+            record,
+            exposure,
+            ready_timeout,
+            callbacks,
+            port,
+        )
+    finally:
+        if listening and box:
+            docker.run(["exec", box.id, "pkill", "-f", f"TCP-LISTEN:{port},"])
+    order = {group: i for i, group in enumerate(GROUP_ORDER)}
+    return sorted(checks, key=lambda c: (order.get(c.group, 99), c.target))
+
+
+def _callback_port(exposure: Exposure) -> int:
+    while True:
+        port = random.randint(*CALLBACK_PORTS)
+        if port not in exposure.local_ports:
+            return port
+
+
+def _listen(
+    docker: Docker,
+    box: str,
+    callbacks: dict[str, list[tuple[str, str]]],
+    port: int,
+    ready_timeout: int,
+) -> list[str]:
+    """Start one listener per attacker box address that a target must call back to."""
+    addresses = sorted({address for pairs in callbacks.values() for _, address in pairs})
+    for address in addresses:
+        docker.run(
+            [
+                "exec",
+                "-d",
+                box,
+                "timeout",
+                str(ready_timeout + 120),
+                "socat",
+                f"TCP-LISTEN:{port},bind={address},fork,reuseaddr",
+                "EXEC:true",
+            ]
+        )
+    return addresses
+
+
+def _run_checks(
+    lab: "_Range",
+    docker: Docker,
+    box: ContainerInfo | None,
+    attacker_planned: list[_Planned],
+    namespaces: list[topology.Container],
+    image: str,
+    relay_targets: list[tuple[str, str, int]],
+    record: state_store.RangeState,
+    exposure: Exposure,
+    ready_timeout: int,
+    callbacks: dict[str, list[tuple[str, str]]],
+    port: int,
+) -> list[Check]:
+    def planned_for(container: topology.Container) -> list[_Planned]:
+        return _namespace_probes(container, relay_targets, callbacks[container.key], port)
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         attacker_future = pool.submit(
             probes.in_attacker,
@@ -500,7 +606,7 @@ def validate(
                 docker,
                 lab.info(c.key).id,
                 image,  # type: ignore[union-attr]
-                [p.probe for p in _namespace_probes(c, relay_targets)],
+                [p.probe for p in planned_for(c)],
                 ready_timeout,
             )
             for c in namespaces
@@ -518,17 +624,13 @@ def validate(
             checks.append(Check("attacker", "attacker box", False, "not running"))
         checks += _results(attacker_planned, attacker_future.result())
         for container in namespaces:
-            checks += _results(
-                _namespace_probes(container, relay_targets),
-                namespace_futures[container.key].result(),
-            )
+            checks += _results(planned_for(container), namespace_futures[container.key].result())
         for future in host_futures:
             checks += future.result()
         checks += flag_future.result()
         if exposure_future is not None:
             checks += exposure_future.result()
-    order = {group: i for i, group in enumerate(GROUP_ORDER)}
-    return sorted(checks, key=lambda c: (order.get(c.group, 99), c.target))
+    return checks
 
 
 def failures(checks: list[Check]) -> list[Check]:

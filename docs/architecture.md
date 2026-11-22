@@ -368,6 +368,7 @@ isolation checks as CI.
 | --- | --- | --- |
 | service | every container | running (healthy, with a healthcheck), or exited 0 (one-shot) |
 | reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s; an optional port only warns |
+| callback | every target namespace → the attacker box's address on each segment they share, on a random port from 40000 to 59999 | connects within 90 s |
 | segmentation | attacker → containers on no shared network, by name and by IP | unresolved or refused |
 | no internet | every target namespace: DNS, TCP v4 and v6, HTTP, default route | all fail |
 | host isolation | published ports; host → every target IP and port | none; refused |
@@ -381,7 +382,14 @@ into one shell script, so the attacker costs one `docker exec` and each target o
 `docker run --rm --network container:<id>`. Targets are probed with the attacker image, which
 is already present and has the tools; the target image may have none, and nothing extra is
 pulled. Readiness retries run inside the script, and the namespaces run in parallel. The
-dmz-redis range validates 25 checks in about 3 seconds. The exit code is 1 when a check fails.
+dmz-redis range validates 26 checks in about 2 seconds.
+
+The callback check is what a reverse shell or a JNDI callback (Log4Shell) needs. For the
+duration of `validate`, the attacker box runs one `socat` listener per address that a target
+must reach (`timeout`-bounded, stopped with `pkill` at the end), bound to that segment address
+only, never to the `relay` or `egress` address, so invariant 4 of
+[Proxy and expose](#proxy-and-expose) still holds for the proxy ports. Hosts behind a pivot
+share no segment with the box and get no callback check. The exit code is 1 when a check fails.
 
 ### One-shot services
 
