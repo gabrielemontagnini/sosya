@@ -44,8 +44,8 @@ hints and flag locations, and `sosya down <range>` removes everything.
 | `--model` / `SOSYA_MODEL` | The model id. Required for OpenAI and for servers that list several models |
 | `--effort` / `SOSYA_EFFORT` | `low`, `medium` (default), `high`, `xhigh` or `max`; OpenAI-compatible servers get `high` for the last two |
 
-Without a model id, Sosya chooses one automatically: the newest Sonnet model on Anthropic, or the
-only model a server lists (a local Ollama with one model pulled, for example). Keys are never
+Without a model id, Sosya chooses one automatically: the newest mid-tier model on Anthropic, or
+the only model a server lists (a local Ollama with one model pulled, for example). Keys are never
 printed or logged.
 
 ### Requirements
