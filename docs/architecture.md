@@ -458,6 +458,12 @@ That still fits the sentence, but it means the Gate 2 prompts no longer start an
 with local files. That path stays covered by `tests/integration/test_local_files.py`.
 Report: `evals/reports/gate2-plan-20261121-232328.md`.
 
+**Rerun with the spoiler rule** (2026-11-22, planning only, medium): the system prompt now
+keeps advisory ids out of names, descriptions and objectives, and the expectations check it.
+**10/10** valid plans, **10/10** expectations met, every one on the first attempt; 2.8 s median
+and 5.8 s p90 for the plan, 7.7 s median and 11.3 s p90 with the queries.
+Report: `evals/reports/gate2-plan-20261122-130218.md`.
+
 ### Local models: Ollama on CPU (2026-11-22)
 
 Qwen3 8B on Ollama 0.40, CPU only (12 cores, no GPU), 16k context, at about 3.7 to 5.4 output
