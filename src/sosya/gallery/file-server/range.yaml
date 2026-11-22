@@ -1,0 +1,19 @@
+apiVersion: sosya/v1
+name: file-server
+description: A Samba file server in a DMZ, and an SSH server reachable only from the file server
+networks: [dmz, internal]
+hosts:
+  - name: files
+    component: vulhub/samba/CVE-2017-7494
+    networks: [dmz, internal]
+  - name: backup
+    component: vulhub/openssh/CVE-2018-15473
+    networks: [internal]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - List the shares of files and find one you can write to
+  - Get a shell on files and read its flag
+  - From files, find a valid account on backup and log in
+  - Read the flag on backup

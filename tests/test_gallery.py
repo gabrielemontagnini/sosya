@@ -17,6 +17,24 @@ def test_the_gallery_has_dmz_redis() -> None:
     assert path is not None and (path / "range.yaml").is_file()
 
 
+GALLERY = {"dmz-redis", "wordpress", "solr", "grafana", "drupal", "file-server", "jenkins"}
+
+
+def test_the_gallery_has_seven_ranges() -> None:
+    assert set(gallery.names()) == GALLERY
+
+
+@pytest.mark.parametrize("name", gallery.names())
+def test_gallery_ranges_give_nothing_away(name: str) -> None:
+    from sosya import advisories
+
+    path = gallery.path(name)
+    assert path is not None
+    spec = load_range(path)
+    for text in (spec.name, spec.description, *spec.objectives):
+        assert advisories.find(text) == set(), text
+
+
 def test_unknown_gallery_name() -> None:
     assert gallery.path("no-such-range") is None
 

@@ -1,0 +1,15 @@
+apiVersion: sosya/v1
+name: drupal
+description: A Drupal 8 site in a DMZ, installed and never patched
+networks: [dmz]
+hosts:
+  - name: site
+    component: vulhub/drupal/CVE-2018-7600
+    networks: [dmz]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Find out which Drupal version site runs
+  - Run a command on site without an account
+  - Read the flag on site

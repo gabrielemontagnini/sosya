@@ -8,3 +8,8 @@ ports:
     port: 50000
     optional: true
     reason: published by the compose file, but the Jenkins agent port never listens
+  - id: vulhub/samba/CVE-2017-7494
+    service: samba
+    port: 6699
+    optional: true
+    reason: published by the compose file, but nothing listens on it in a fresh range

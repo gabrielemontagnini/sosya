@@ -1,0 +1,15 @@
+apiVersion: sosya/v1
+name: solr
+description: An Apache Solr search server in a DMZ, with its admin interface open
+networks: [dmz]
+hosts:
+  - name: search
+    component: vulhub/log4j/CVE-2021-44228
+    networks: [dmz]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Find a request whose content the server writes to its logs
+  - Make search connect back to the attacker box
+  - Get a shell on search and read the flag

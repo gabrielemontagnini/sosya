@@ -11686,8 +11686,10 @@
        "protocol": "tcp"
       },
       {
+       "optional": true,
        "port": 6699,
-       "protocol": "tcp"
+       "protocol": "tcp",
+       "reason": "published by the compose file, but nothing listens on it in a fresh range"
       }
      ]
     }

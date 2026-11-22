@@ -60,8 +60,13 @@ jobs:
         run: uv run --isolated --no-project --with dist/*.whl sosya catalog struts2
       - name: Check that the gallery ships in the wheel and the sdist
         run: |
-          unzip -l dist/*.whl | grep -q " sosya/gallery/dmz-redis/range.yaml$"
-          tar -tzf dist/*.tar.gz | grep -q "/src/sosya/gallery/dmz-redis/range.yaml$"
+          ranges=$(for f in src/sosya/gallery/*/range.yaml; do basename "$(dirname "$f")"; done)
+          test -n "$ranges"
+          for name in $ranges; do
+            unzip -l dist/*.whl | grep -q " sosya/gallery/$name/range.yaml$"
+            tar -tzf dist/*.tar.gz | grep -q "/src/sosya/gallery/$name/range.yaml$"
+            echo "$name ok"
+          done
       - name: Check every gallery range from the installed wheel
         run: |
           uv run --isolated --no-project --with dist/*.whl python -I -c '

@@ -1,0 +1,15 @@
+apiVersion: sosya/v1
+name: grafana
+description: A Grafana dashboard server in a DMZ, reachable without logging in
+networks: [dmz]
+hosts:
+  - name: dashboards
+    component: vulhub/grafana/CVE-2021-43798
+    networks: [dmz]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Read a file outside the web root of dashboards, such as /etc/passwd
+  - Read the flag on dashboards
+  - Find the Grafana configuration and database on disk

@@ -1,0 +1,15 @@
+apiVersion: sosya/v1
+name: jenkins
+description: A Jenkins CI/CD server in a DMZ, with anonymous read access
+networks: [dmz]
+hosts:
+  - name: ci
+    component: vulhub/jenkins/CVE-2018-1000861
+    networks: [dmz]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Find out which Jenkins version ci runs
+  - Run a command on ci without an account
+  - Read the flag on ci

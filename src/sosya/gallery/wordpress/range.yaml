@@ -1,0 +1,15 @@
+apiVersion: sosya/v1
+name: wordpress
+description: An old WordPress blog in a DMZ, with its MySQL database kept private
+networks: [dmz]
+hosts:
+  - name: blog
+    component: vulhub/wordpress/pwnscriptum
+    networks: [dmz]
+attacker:
+  networks: [dmz]
+  internet: true
+objectives:
+  - Find out what the blog runs and which version
+  - Get a shell on blog
+  - Read the flag on blog
