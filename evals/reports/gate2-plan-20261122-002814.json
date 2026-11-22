@@ -1,0 +1,103 @@
+{
+  "none": [
+    {
+      "id": "named-product",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/jenkins/CVE-2017-1000353"
+      ],
+      "times": {
+        "queries": 5.91266931300197,
+        "plan": 155.64661278500716,
+        "total": 161.61742866099667
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "local-files",
+      "outcome": "failed",
+      "expectations": "no plan",
+      "attempts": 3,
+      "components": [],
+      "times": {
+        "queries": 4.0966323370012105,
+        "plan": 136.8432620320018,
+        "total": 140.98792991099617
+      },
+      "message": "attacker: component attacker is not one of the candidate ids; hosts[1].component: String should match pattern '^vulhub/[A-Za-z0-9._/-]+$'",
+      "refusal_category": null
+    },
+    {
+      "id": "gif",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/struts2/s2-066",
+        "vulhub/redis/4-unacc",
+        "vulhub/weblogic/ssrf"
+      ],
+      "times": {
+        "queries": 9.658507275002194,
+        "plan": 299.3587394780043,
+        "total": 309.0761842819993
+      },
+      "message": "struts2-app: vulhub/struts2/s2-066 has no service 'struts2(8080)' (it has struts2); redis-server: vulhub/redis/4-unacc has no service 'redis(6379)' (it has redis); redis-proxy: vulhub/weblogic/ssrf has no service 'weblogic(7001)' (it has weblogic, redis)",
+      "refusal_category": null
+    }
+  ],
+  "medium": [
+    {
+      "id": "named-product",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/jenkins/CVE-2017-1000353"
+      ],
+      "times": {
+        "queries": 91.63948558999982,
+        "plan": 504.3370390620039,
+        "total": 596.0266469049966
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "local-files",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 2,
+      "components": [
+        "vulhub/php/inclusion"
+      ],
+      "times": {
+        "queries": 95.16213273500034,
+        "plan": 498.2708788420059,
+        "total": 593.4783278489995
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "gif",
+      "outcome": "valid",
+      "expectations": "no host behind a pivot",
+      "attempts": 1,
+      "components": [
+        "vulhub/struts2/s2-045",
+        "vulhub/celery/celery3_redis_unauth"
+      ],
+      "times": {
+        "queries": 88.69024423700466,
+        "plan": 695.1080535240035,
+        "total": 783.8531604960008
+      },
+      "message": "",
+      "refusal_category": null
+    }
+  ]
+}

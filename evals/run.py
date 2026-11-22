@@ -82,7 +82,13 @@ def say(text: str) -> None:
 
 def plan_only(prompts: list[dict[str, Any]], effort: str | None, platform: str | None) -> list[Row]:
     adapter = llm.select(effort=effort)
-    planner = Planner(adapter, load_index(), host_platform=platform, effort=effort)
+    planner = Planner(
+        adapter,
+        load_index(),
+        host_platform=platform,
+        effort=effort,
+        warn=lambda text: say(f"  warn: {text}"),
+    )
     rows = []
     for prompt in prompts:
         row = Row(prompt["id"], "failed")
@@ -110,6 +116,8 @@ def plan_only(prompts: list[dict[str, Any]], effort: str | None, platform: str |
                     row.outcome = "dangerous" if draft.dangerous else "valid"
                     break
                 problems = [str(issue) for issue in draft.errors]
+            if row.outcome == "failed":
+                row.message = "; ".join(problems)[:600]
             row.times["plan"] = plan_time
             row.components = [h.component for h in spec.hosts] if spec else []
             row.expectations = expectations(prompt, spec)
@@ -233,6 +241,10 @@ def report_plan_only(by_effort: dict[str, list[Row]], adapter: Any, platform: st
                 f"| {r.id} | {r.outcome} | {r.attempts} | {r.times.get('plan', 0):.1f}s "
                 f"| {r.expectations} |"
             )
+        notes = [r for r in rows if r.message]
+        if notes:
+            lines += ["", "Last problems:", ""]
+            lines += [f"- {r.id}: {r.message.splitlines()[0]}" for r in notes]
     return "\n".join(lines) + "\n"
 
 

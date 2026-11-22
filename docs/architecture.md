@@ -453,6 +453,41 @@ That still fits the sentence, but it means the Gate 2 prompts no longer start an
 with local files. That path stays covered by `tests/integration/test_local_files.py`.
 Report: `evals/reports/gate2-plan-20261121-232328.md`.
 
+### Local models: Ollama on CPU (2026-11-22)
+
+Qwen3 8B on Ollama 0.40, CPU only (12 cores, no GPU), 16k context, at about 3.7 to 5.4 output
+tokens per second. The endpoint was given only as `OPENAI_BASE_URL=http://localhost:11434/v1`,
+with no key and no `SOSYA_MODEL`: the adapter picked the only listed model, and `json_schema`
+structured output worked without the text fallback. The planning prompt is about 3,100 tokens,
+far below the context, so no prompt was truncated.
+
+| Run | Valid plans | Expectations | Time per prompt |
+| --- | --- | --- | --- |
+| default effort (medium: thinking on), before the fixes, 1 prompt | 1/1 | 1/1 | 604 s |
+| `none` (thinking off), all 10 prompts | 3/10 | 3 of the valid ones | 292 s median, 391 s p90 |
+| `none`, 3 prompts again | 1/3 | 1/3 | 162 s median |
+| medium (thinking on), the same 3 prompts | 3/3 | 2/3 | 596 s median, 784 s p90 |
+
+- **Speed.** With thinking on, the queries call alone takes about 90 s (500 thinking tokens for
+  a few keywords), and a plan 5 to 12 minutes. Before the fixes, the 5-minute read timeout cut
+  a plan call, and the retry ran it again from the start.
+- **Quality with `none`.** It is fast, but the 8B model misreads the request. It copies
+  `struts2(8080)` from the candidate list as a service name, adds the attacker box as a host,
+  or writes a component without the `vulhub/` prefix. Three attempts do not fix it.
+- **Quality with thinking.** The plans are valid, usually on the first attempt. One of 3 missed
+  the pivot that the sentence asked for.
+- **Full run.** `sosya new "A Jenkins server with a remote code execution bug" --yes` at the
+  default effort: green in **15 min 27 s**, 14/14 checks, one attempt
+  (`jenkins/CVE-2017-1000353`). The model named the range after the CVE.
+
+What this means for the README: a local 8B model on CPU **works**, but slowly. Use the default
+effort, and count on 10 to 15 minutes for a single-host range. `none` is not reliable for
+planning with a model this small. Each local result above is one run of one model.
+
+Reports: `evals/reports/gate2-plan-20261121-232502.md` (before the fixes),
+`gate2-plan-20261121-234120.md` (`none`, 10 prompts), `gate2-plan-20261122-002814.md` (`none`
+and medium, 3 prompts).
+
 ## Proxy and expose
 
 `sosya up --proxy [--proxy-port 1080]` adds a SOCKS5 proxy for the host's browser or Burp;

@@ -1,0 +1,175 @@
+{
+  "none": [
+    {
+      "id": "single-host",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/drupal/CVE-2017-6920"
+      ],
+      "times": {
+        "queries": 9.148937107995152,
+        "plan": 137.05580439500045,
+        "total": 146.2496698879986
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "pivot",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/httpd/CVE-2021-40438",
+        "vulhub/h2database/CVE-2021-42392",
+        "vulhub/h2database/CVE-2022-23221"
+      ],
+      "times": {
+        "queries": 7.30595080400235,
+        "plan": 323.23248211699683,
+        "total": 330.6061998869991
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "named-cve",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/log4j/CVE-2021-44228",
+        "vulhub/log4j/CVE-2017-5645"
+      ],
+      "times": {
+        "queries": 6.99177496899938,
+        "plan": 157.24204067900428,
+        "total": 164.26444621200062
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "named-product",
+      "outcome": "failed",
+      "expectations": "no plan",
+      "attempts": 3,
+      "components": [],
+      "times": {
+        "queries": 6.162356526998337,
+        "plan": 227.21161087599467,
+        "total": 233.42003421400295
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "multi-service",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/wordpress/CVE-2026-63030",
+        "vulhub/wordpress/pwnscriptum",
+        "vulhub/mysql/CVE-2012-2122"
+      ],
+      "times": {
+        "queries": 3.869074805996206,
+        "plan": 283.7066777239961,
+        "total": 287.615513802004
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "vague",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/cmsms/CVE-2019-9053",
+        "vulhub/h2database/CVE-2021-42392",
+        "vulhub/goahead/CVE-2021-42342",
+        "vulhub/webmin/CVE-2019-15107",
+        "vulhub/weblogic/ssrf"
+      ],
+      "times": {
+        "queries": 7.084617825996247,
+        "plan": 429.70812702299736,
+        "total": 436.8397731410005
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "not-english",
+      "outcome": "valid",
+      "expectations": "met",
+      "attempts": 1,
+      "components": [
+        "vulhub/grafana/CVE-2021-43798",
+        "vulhub/httpd/CVE-2021-41773"
+      ],
+      "times": {
+        "queries": 3.8362000880006235,
+        "plan": 184.41419169599976,
+        "total": 188.28951601699373
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "three-hosts",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/weblogic/ssrf",
+        "vulhub/redis/CVE-2022-0543",
+        "vulhub/openssh/CVE-2018-15473",
+        "vulhub/weblogic/ssrf"
+      ],
+      "times": {
+        "queries": 9.354461786999309,
+        "plan": 381.58183914599795,
+        "total": 391.014423583998
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "local-files",
+      "outcome": "failed",
+      "expectations": "no plan",
+      "attempts": 3,
+      "components": [],
+      "times": {
+        "queries": 4.559951924995403,
+        "plan": 292.1782931380003,
+        "total": 296.78534094999486
+      },
+      "message": "",
+      "refusal_category": null
+    },
+    {
+      "id": "gif",
+      "outcome": "failed",
+      "expectations": "met",
+      "attempts": 3,
+      "components": [
+        "vulhub/struts2/s2-066",
+        "vulhub/redis/4-unacc",
+        "vulhub/weblogic/ssrf"
+      ],
+      "times": {
+        "queries": 7.019412525005464,
+        "plan": 292.9603964229973,
+        "total": 300.0345318539985
+      },
+      "message": "",
+      "refusal_category": null
+    }
+  ]
+}
