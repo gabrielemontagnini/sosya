@@ -14,6 +14,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from sosya import advisories
 from sosya.catalog.loader import load_services
 from sosya.catalog.models import CatalogIndex
 from sosya.llm.base import LLM, Completion, Message
@@ -141,11 +142,24 @@ class Planner:
         except ValidationError as exc:
             return None, _validation_issues(exc)
         range_data = plan.to_range_data()
+        named = advisories.find(conversation.sentence)
         if conversation.name is None:
-            conversation.name = plan.name
-        else:
-            range_data["name"] = conversation.name  # the name stays fixed across attempts
-        outside = [
+            fallback = advisories.strip_name(plan.hosts[0].name, named) if plan.hosts else ""
+            conversation.name = advisories.strip_name(plan.name, named, fallback)
+        range_data["name"] = conversation.name  # the name stays fixed across attempts
+        spoilers = [
+            Issue(
+                "error",
+                f"{where} names {', '.join(found)}: advisory ids give the exercise away, keep "
+                "them out of the name, description and objectives",
+            )
+            for where, text in [
+                ("description", plan.description),
+                *((f"objective {i}", o) for i, o in enumerate(plan.objectives, start=1)),
+            ]
+            if (found := advisories.spoilers(text, named))
+        ]
+        outside = spoilers + [
             Issue("error", f"component {h.component} is not one of the candidate ids", h.name)
             for h in plan.hosts
             if h.component not in conversation.ids

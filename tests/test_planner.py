@@ -211,6 +211,50 @@ def test_repair_keeps_the_conversation_and_the_name() -> None:
     assert messages[:2] == llm.calls[0]["messages"] + [messages[1]]
 
 
+def test_advisory_ids_leave_the_name() -> None:
+    p = planner(FakeLLM(plan(name="dmz-redis-s2-045-cve-2017-5638")))
+    draft = p.draft(start(p))
+    assert draft.errors == []
+    assert draft.spec is not None and draft.spec.name == "dmz-redis"
+
+
+def test_a_name_made_only_of_an_advisory_id_falls_back_to_the_first_host() -> None:
+    p = planner(FakeLLM(plan(name="cve-2017-5638")))
+    draft = p.draft(start(p))
+    assert draft.spec is not None and draft.spec.name == "web"
+
+
+def test_advisory_ids_in_description_or_objectives_are_repaired() -> None:
+    spoiled = plan(
+        description="Struts2 vulnerable to CVE-2017-5638",
+        objectives=["Exploit S2-045 on web", "Read the flag on cache"],
+    )
+    llm = FakeLLM(spoiled, plan())
+    p = planner(llm)
+    conversation = start(p)
+    first = p.draft(conversation)
+    assert first.spec is None
+    messages = [issue.message for issue in first.errors]
+    assert any(m.startswith("description names CVE-2017-5638") for m in messages)
+    assert any(m.startswith("objective 1 names S2-045") for m in messages)
+    second = p.repair(conversation, [str(issue) for issue in first.errors])
+    assert second.errors == [] and second.spec is not None
+    assert "advisory ids give the exercise away" in llm.calls[1]["messages"][2].content
+
+
+def test_advisory_ids_from_the_sentence_are_allowed() -> None:
+    sentence = "A lab with CVE-2017-5638 in a DMZ and Redis inside"
+    named = plan(name="cve-2017-5638-lab", description="Struts2 with CVE-2017-5638")
+    p = planner(FakeLLM(named))
+    draft = p.draft(start(p, sentence))
+    assert draft.errors == []
+    assert draft.spec is not None and draft.spec.name == "cve-2017-5638-lab"
+
+
+def test_the_plan_prompt_forbids_spoilers() -> None:
+    assert "advisory ids" in PLAN_SYSTEM and "unless the lab description" in PLAN_SYSTEM
+
+
 def test_dangerous_entries_are_reported_not_repaired() -> None:
     hosts = [
         {

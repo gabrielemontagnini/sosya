@@ -231,3 +231,74 @@ def test_the_spoiler_holds_the_title_cves_and_vulhub_link() -> None:
     assert "vulhub/tree/" in spoiler
     before = text.split("Hint 3: the spoiler")[0]
     assert "CVE-2017-5638" not in before
+
+
+# --- no spoilers outside hint 3 --------------------------------------------------------------
+
+_HINT_3 = re.compile(r"<details><summary>Hint 3: the spoiler</summary>.*?</details>", re.DOTALL)
+
+
+def _outside_hint_3(text: str) -> str:
+    assert "Hint 3: the spoiler" in text
+    return _HINT_3.sub("", text)
+
+
+def _assert_no_spoilers(text: str, sentence: str = "") -> None:
+    from sosya import advisories
+
+    outside = advisories.find(_outside_hint_3(text))
+    assert outside <= advisories.find(sentence), sorted(outside)
+
+
+@pytest.mark.parametrize("name", gallery.names())
+def test_gallery_scenarios_name_no_advisory_outside_hint_3(name: str) -> None:
+    path = gallery.path(name)
+    assert path is not None
+    spec = load_range(path)
+    text = markdown.render(spec, load_index(), {h.name: "/flag.txt" for h in spec.hosts})
+    _assert_no_spoilers(text)
+
+
+def _planned(sentence: str, answers: list[dict[str, Any]]):
+    from test_planner import FakeLLM, plan
+
+    from sosya.catalog.loader import load_services
+    from sosya.planner import Candidate, Planner
+
+    index = load_index()
+    found = [Candidate(index.get(i)) for i in ("vulhub/struts2/s2-045", "vulhub/redis/4-unacc")]
+    p = Planner(
+        FakeLLM(*(plan(**a) for a in answers)),
+        index,
+        host_platform="linux/amd64",
+        services_of=load_services,
+    )
+    conversation = p.start(sentence, found)
+    draft = p.draft(conversation)
+    while draft.errors:
+        draft = p.repair(conversation, [str(issue) for issue in draft.errors])
+    assert draft.spec is not None
+    return draft.spec, index
+
+
+def test_a_planned_scenario_names_no_advisory_outside_hint_3() -> None:
+    sentence = "Struts2 in a DMZ, passwordless Redis inside"
+    spoiled = {
+        "name": "struts2-cve-2017-5638",
+        "description": "Struts2 with CVE-2017-5638 and Redis",
+        "objectives": ["Exploit S2-045 on web"],
+    }
+    spec, index = _planned(sentence, [spoiled, {"name": "ignored"}])
+    assert spec.name == "struts2"
+    text = markdown.render(spec, index, {})
+    _assert_no_spoilers(text, sentence)
+    assert "CVE-2017-5638" in text  # still there, in hint 3
+
+
+def test_a_cve_from_the_sentence_may_stay_outside_hint_3() -> None:
+    sentence = "A lab with CVE-2017-5638 in a DMZ and Redis inside"
+    named = {"name": "cve-2017-5638-lab", "description": "Struts2 with CVE-2017-5638"}
+    spec, index = _planned(sentence, [named])
+    text = markdown.render(spec, index, {})
+    assert "CVE-2017-5638" in _outside_hint_3(text)
+    _assert_no_spoilers(text, sentence)

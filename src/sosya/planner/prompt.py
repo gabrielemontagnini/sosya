@@ -35,7 +35,10 @@ Write the lab as JSON with these rules:
   well.
 - objectives: 1 to 4 short goals for the trainee, such as "Get a shell on web" or "Read the flag
   on cache". Goals only, never instructions on how to attack.
-- description: one sentence that says what the lab contains."""
+- description: one sentence that says what the lab contains.
+- No spoilers: name, description and objectives never contain CVE ids or other advisory ids
+  (GHSA, CNVD, CNNVD, Struts S2-NNN), unless the lab description already names them. Sosya puts
+  them in the trainee's last hint; anywhere else they give the exercise away."""
 
 
 def _candidate_line(candidate: Candidate) -> str:

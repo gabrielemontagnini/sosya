@@ -319,7 +319,14 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
    a hand-written file: the range schema, `check_catalog`, and "the component is one of the
    candidates". Each failure is an `Issue` that goes back to the LLM.
 4. **Name.** The first draft fixes the range name; later drafts keep it.
-5. **Dangerous entries** in a draft are not repaired: the build stops on them (see
+5. **No spoilers outside the hints** (`sosya.advisories`). Advisory ids (CVE, GHSA, CNVD,
+   CNNVD, Struts `S2-NNN`) stay out of the name, the description and the objectives, unless the
+   user's sentence already names them; SCENARIO.md keeps them for hint 3. The system prompt says
+   so. The name is cleaned in code, deterministically, before `unique_name`
+   (`jenkins-cve-2017-1000353` becomes `jenkins`; a name left empty takes the first host's
+   name). An id in the description or an objective is a static issue that goes to repair. A
+   name the user types in the plan editor is not touched.
+6. **Dangerous entries** in a draft are not repaired: the build stops on them (see
    [Services with host-level privileges](#services-with-host-level-privileges)).
 
 ## Flags and SCENARIO.md
