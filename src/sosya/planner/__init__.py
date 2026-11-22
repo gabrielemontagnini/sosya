@@ -1,7 +1,6 @@
 """The planner: from a sentence to a checked `RangeSpec`, through the LLM.
 
-1. `derive_queries`: the LLM turns the sentence into catalog keywords (at low effort, or none
-   when the user chose none).
+1. `derive_queries`: the LLM turns the sentence into catalog keywords (always at low effort).
 2. `candidates`: a lexical search with Reciprocal Rank Fusion picks at most 25 entries.
 3. `draft`: the LLM writes a lab from those candidates; Pydantic, the range schema,
    `check_catalog` and a "candidates only" check turn every mistake into an `Issue`.
@@ -97,11 +96,6 @@ class Planner:
             self.warn(warning)
         return result
 
-    @property
-    def query_effort(self) -> str:
-        chosen = self.effort or getattr(self.llm, "effort", None)
-        return "none" if chosen == "none" else QUERY_EFFORT
-
     def derive_queries(self, sentence: str) -> list[str]:
         result = self.llm.complete_json(
             system=prompt.QUERY_SYSTEM,
@@ -109,7 +103,7 @@ class Planner:
             schema=QUERY_SCHEMA,
             schema_name="catalog_queries",
             max_tokens=4000,
-            effort=self.query_effort,
+            effort=QUERY_EFFORT,
         )
         self._forward(result)
         try:

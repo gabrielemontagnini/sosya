@@ -8,7 +8,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-EFFORTS = ("none", "low", "medium", "high", "xhigh", "max")
+EFFORTS = ("low", "medium", "high", "xhigh", "max")
 """`none` turns reasoning off; only OpenAI-compatible servers accept it (local models)."""
 Role = Literal["user", "assistant"]
 

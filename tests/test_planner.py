@@ -257,13 +257,11 @@ def test_the_plan_request_marks_entries_with_local_files() -> None:
     assert "[local files]" in prompt.PLAN_SYSTEM
 
 
-def test_queries_use_low_effort_or_none_when_chosen() -> None:
-    llm = FakeLLM({"queries": ["x"]}, {"queries": ["y"]}, {"queries": ["z"]})
+def test_queries_always_use_low_effort() -> None:
+    llm = FakeLLM({"queries": ["x"]}, {"queries": ["y"]})
     planner(llm).derive_queries("a lab")
-    Planner(llm, index(), host_platform=None, effort="none").derive_queries("a lab")
-    llm.effort = "none"  # the adapter's own effort, from SOSYA_EFFORT
-    planner(llm).derive_queries("a lab")
-    assert [call["effort"] for call in llm.calls] == ["low", "none", "none"]
+    Planner(llm, index(), host_platform=None, effort="high").derive_queries("a lab")
+    assert [call["effort"] for call in llm.calls] == ["low", "low"]
 
 
 def test_the_planner_forwards_adapter_warnings() -> None:

@@ -275,9 +275,7 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   or 422 about the response format, the adapter switches to text mode for the rest of the
   process: the schema goes into the system prompt and the JSON is read from the reply.
   The effort goes out as `reasoning_effort` (`xhigh` and `max` become `high`). A 400 or 422
-  about it drops the field for the rest of the process. `none`, accepted only by this adapter,
-  turns a local model's thinking off: on Ollama it is the only value that does (`low` still
-  thinks, and `think: false` is ignored on `/v1`). A server on this machine (loopback or
+  about it drops the field for the rest of the process. A server on this machine (loopback or
   `host.docker.internal`) gets a 30-minute read timeout instead of 5 minutes, because a model on
   CPU can need several minutes for one answer, and a timeout would only send the same request
   again. Ollama cuts a prompt longer than its context window without an error. When
@@ -302,7 +300,7 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
 ## Planner
 
 1. **Queries.** The LLM turns the sentence into 1 to 8 catalog keywords (`QueryPlan`) at low
-   effort (or `none`, when that is the chosen effort): it is a simple task, and its latency adds
+   effort: it is a simple task, and its latency adds
    to every `sosya new`.
 2. **Candidates.** `sosya.catalog.search` ranks entries for the sentence and the keywords with
    Reciprocal Rank Fusion. From the ranking, at most 25 candidates are kept:
@@ -480,9 +478,13 @@ far below the context, so no prompt was truncated.
   default effort: green in **15 min 27 s**, 14/14 checks, one attempt
   (`jenkins/CVE-2017-1000353`). The model named the range after the CVE.
 
+**`none` was removed on 2026-11-22.** It was an experiment outside the v0.1 specification, and
+with the 8B model it gave 3 valid plans of 10. `--effort` now accepts low, medium, high, xhigh and
+max. Turning a local model's thinking off (on Ollama `/v1` only `reasoning_effort: "none"` does;
+`low` still thinks and `think: false` is ignored) is planned for v0.2 as a provider-specific option.
+
 What this means for the README: a local 8B model on CPU **works**, but slowly. Use the default
-effort, and count on 10 to 15 minutes for a single-host range. `none` is not reliable for
-planning with a model this small. Each local result above is one run of one model.
+effort, and count on 10 to 15 minutes for a single-host range. Each local result above is one run of one model.
 
 Reports: `evals/reports/gate2-plan-20261121-232502.md` (before the fixes),
 `gate2-plan-20261121-234120.md` (`none`, 10 prompts), `gate2-plan-20261122-002814.md` (`none`

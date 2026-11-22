@@ -99,9 +99,7 @@ def new(
     ] = None,
     effort: Annotated[
         str | None,
-        typer.Option(
-            help="Reasoning effort: low, medium, high, xhigh or max; none for local models."
-        ),
+        typer.Option(help="Reasoning effort: low, medium, high, xhigh or max."),
     ] = None,
     yes: Annotated[
         bool, typer.Option("--yes", "-y", help="Start the plan without asking first.")

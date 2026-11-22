@@ -274,9 +274,7 @@ def test_openai_refusal_and_length() -> None:
     assert complete(openai(server, model="test-local-1")).data == {"queries": ["jenkins"]}
 
 
-@pytest.mark.parametrize(
-    ("effort", "sent"), [("none", "none"), ("low", "low"), ("xhigh", "high"), ("max", "high")]
-)
+@pytest.mark.parametrize(("effort", "sent"), [("low", "low"), ("xhigh", "high"), ("max", "high")])
 def test_openai_sends_the_effort_as_reasoning_effort(effort: str, sent: str) -> None:
     server = Server().on("/v1/chat/completions", fixture("openai-chat"))
     adapter = openai(server, model="test-local-1", effort="medium")
@@ -435,8 +433,9 @@ def test_select_without_any_provider() -> None:
         llm.select(env={})
 
 
-def test_effort_none_is_only_for_openai_compatible_servers() -> None:
-    with pytest.raises(ConfigError, match="effort none"):
-        llm.select(effort="none", env={"ANTHROPIC_API_KEY": FAKE_KEY})
-    chosen = llm.select(env={"OPENAI_BASE_URL": "http://x/v1", "SOSYA_EFFORT": "none"})
-    assert isinstance(chosen, OpenAICompatibleLLM) and chosen.effort == "none"
+def test_effort_none_is_not_accepted() -> None:
+    for env in ({"ANTHROPIC_API_KEY": FAKE_KEY}, {"OPENAI_BASE_URL": "http://x/v1"}):
+        with pytest.raises(ConfigError, match="unknown effort 'none'"):
+            llm.select(effort="none", env=env)
+        with pytest.raises(ConfigError, match="unknown effort 'none'"):
+            llm.select(env=env | {"SOSYA_EFFORT": "none"})

@@ -3,8 +3,8 @@
 Structured output uses `response_format` `json_schema` with `strict: true`. A server that
 rejects it gets the schema in the system prompt instead, and the JSON is read from the text.
 
-The effort goes out as `reasoning_effort` (`xhigh` and `max` become `high`; `none` turns a local
-model's thinking off). A server that rejects the field gets requests without it.
+The effort goes out as `reasoning_effort` (`xhigh` and `max` become `high`). A server that
+rejects the field gets requests without it.
 
 Some servers (Ollama) cut a prompt longer than their context window without an error. When the
 reported `prompt_tokens` is far below an estimate of what was sent, the completion carries a
@@ -29,7 +29,6 @@ DEFAULT_MAX_TOKENS = 16000
 MAX_TOKENS_CAP = 64000
 _FORMAT_WORDS = ("response_format", "json_schema", "schema", "structured")
 REASONING_EFFORT = {
-    "none": "none",
     "low": "low",
     "medium": "medium",
     "high": "high",
