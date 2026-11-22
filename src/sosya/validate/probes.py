@@ -6,7 +6,10 @@ probed with the attacker image, which is already present and has the tools; the 
 may have none). Each check prints one line, `<id> ok` or `<id> fail`.
 
 A *reach* check must succeed and is retried until a deadline, inside the script, because a
-service can be running before it listens. A *block* check must fail and runs once.
+service can be running before it listens. A *block* check must fail and runs once. An
+*optional* check is for a port the catalog marks optional (it may never listen): it waits,
+within the same deadline, only for its `ready` command (the required ports of the same
+service), then gets one short window of `OPTIONAL_GRACE` seconds instead of the whole deadline.
 """
 
 import json
@@ -17,8 +20,10 @@ from typing import Any, Literal
 
 from sosya.runtime.docker import Docker
 
-Kind = Literal["reach", "block"]
+Kind = Literal["reach", "block", "optional"]
 TCP_TIMEOUT = 3
+OPTIONAL_GRACE = 5
+"""Seconds an optional port gets once the required ports of its service answer."""
 
 
 @dataclass(frozen=True)
@@ -26,6 +31,8 @@ class Probe:
     id: str
     kind: Kind
     command: str
+    ready: str = ""
+    """For an optional probe: what must succeed first (the service's required ports)."""
 
 
 def tcp(host: str, port: int) -> str:
@@ -34,7 +41,7 @@ def tcp(host: str, port: int) -> str:
     return f"timeout {TCP_TIMEOUT} bash -c {shlex.quote(f'exec 3<>{target}')}"
 
 
-def script(probes: list[Probe], ready_timeout: int) -> str:
+def script(probes: list[Probe], ready_timeout: int, optional_grace: int = OPTIONAL_GRACE) -> str:
     lines = [
         "reach() { id=$1; shift; end=$(( $(date +%s) + " + str(ready_timeout) + " ));",
         "  while :; do",
@@ -43,9 +50,24 @@ def script(probes: list[Probe], ready_timeout: int) -> str:
         "    sleep 2",
         "  done; }",
         'block() { if sh -c "$2" >/dev/null 2>&1; then echo "$1 fail"; else echo "$1 ok"; fi; }',
+        "optional() { id=$1; end=$(( $(date +%s) + " + str(ready_timeout) + " ));",
+        '  until sh -c "$2" >/dev/null 2>&1; do',
+        '    if [ "$(date +%s)" -ge "$end" ]; then echo "$id fail"; return; fi',
+        "    sleep 2",
+        "  done",
+        "  end=$(( $(date +%s) + " + str(optional_grace) + " ))",
+        "  while :; do",
+        '    if sh -c "$3" >/dev/null 2>&1; then echo "$id ok"; return; fi',
+        '    if [ "$(date +%s)" -ge "$end" ]; then echo "$id fail"; return; fi',
+        "    sleep 1",
+        "  done; }",
     ]
     for probe in probes:
-        lines.append(f"{probe.kind} {shlex.quote(probe.id)} {shlex.quote(probe.command)} &")
+        if probe.kind == "optional":
+            args = f"{shlex.quote(probe.ready)} {shlex.quote(probe.command)}"
+        else:
+            args = shlex.quote(probe.command)
+        lines.append(f"{probe.kind} {shlex.quote(probe.id)} {args} &")
     lines.append("wait")
     return "\n".join(lines) + "\n"
 

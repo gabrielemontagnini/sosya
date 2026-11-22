@@ -167,10 +167,11 @@ def _attacker_probes(lab: _Range) -> list[_Planned]:
         host: str,
         level: Level = "check",
         note: str = "",
+        ready: str = "",
     ) -> None:
         nonlocal counter
         counter += 1
-        probe = Probe(f"a{counter}", kind, command)
+        probe = Probe(f"a{counter}", kind, command, ready)
         planned.append(_Planned(probe, group, target, host, level, note))
 
     for container in lab.targets():
@@ -183,31 +184,31 @@ def _attacker_probes(lab: _Range) -> list[_Planned]:
         if common:
             if not container.segments:
                 continue
+            required = [p.port for p in port_info if not p.optional]
+            addresses = [(container.key, f"{container.key}:")]
+            for network in sorted(common):
+                ip = lab.ips(container.key).get(network)
+                if ip:
+                    addresses.append((ip, f"{container.key} {ip}:"))
             for info in port_info:
                 port = info.port
-                # An optional port that never listens is an upstream quirk, not a broken range.
+                # An optional port that never listens is an upstream quirk, not a broken range:
+                # it only warns, and waits for the required ports of its service rather than
+                # the whole deadline. With no required port it keeps the normal deadline.
                 level: Level = "warning" if info.optional else "check"
-                add(
-                    "reach",
-                    probes.tcp(container.key, port),
-                    "reach",
-                    f"{container.key}:{port}",
-                    container.host,
-                    level,
-                    info.reason,
-                )
-                for network in sorted(common):
-                    ip = lab.ips(container.key).get(network)
-                    if ip:
-                        add(
-                            "reach",
-                            probes.tcp(ip, port),
-                            "reach",
-                            f"{container.key} {ip}:{port}",
-                            container.host,
-                            level,
-                            info.reason,
-                        )
+                for address, label in addresses:
+                    ready = " && ".join(probes.tcp(address, p) for p in required)
+                    kind: probes.Kind = "optional" if info.optional and ready else "reach"
+                    add(
+                        kind,
+                        probes.tcp(address, port),
+                        "reach",
+                        f"{label}{port}",
+                        container.host,
+                        level,
+                        info.reason,
+                        ready if kind == "optional" else "",
+                    )
             if not ports:
                 add(
                     "reach",
@@ -334,6 +335,8 @@ def _results(planned: list[_Planned], results: dict[str, bool]) -> list[Check]:
             detail = "connected" if ok else f"no connection within {READY_TIMEOUT}s"
         elif item.group == "reach":
             detail = "reachable" if ok else f"no answer within {READY_TIMEOUT}s"
+            if not ok and item.probe.kind == "optional":
+                detail = f"no answer within {probes.OPTIONAL_GRACE}s of its service"
             if not ok and item.level == "warning":
                 detail += f" (optional port: {item.note})"
         else:
@@ -445,9 +448,16 @@ def _exposure_checks(lab: _Range, exposure: Exposure, ready_timeout: int) -> lis
                 continue
             if not set(container.segments) & set(box.segments):
                 continue
-            for port_info in _tcp_port_info(lab.index, lab.spec, container):
+            port_infos = _tcp_port_info(lab.index, lab.spec, container)
+            has_required = any(not p.optional for p in port_infos)
+            # Required ports first, with the deadline; then each optional port gets a short
+            # window (the whole deadline only when the service has no required port).
+            for port_info in sorted(port_infos, key=lambda p: (p.optional, p.port)):
+                until = deadline
+                if port_info.optional and has_required:
+                    until = min(deadline, time.monotonic() + probes.OPTIONAL_GRACE)
                 ok = _until(
-                    deadline,
+                    until,
                     lambda c=container, p=port_info.port: socks.connect(proxy, c.key, p),
                 )
                 level: Level = "warning" if port_info.optional else "check"

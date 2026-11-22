@@ -21,7 +21,7 @@ IPS = {
     "cache": {"internal": "10.0.2.3"},
     "attacker": {"dmz": "10.0.1.3", "egress": "10.0.9.2"},
 }
-_PROBE = re.compile(r"^(reach|block) '?([an]\d+)'? ", re.MULTILINE)
+_PROBE = re.compile(r"^(reach|block|optional) '?([an]\d+)'? ", re.MULTILINE)
 
 
 def inspected(
@@ -254,6 +254,64 @@ def _with_optional_web_port(port: int) -> Any:
     changed = entry.model_copy(update={"services": services})
     entries = [changed if e.id == entry.id else e for e in index.entries]
     return index.model_copy(update={"entries": entries})
+
+
+def with_extra_optional_web_port(port: int) -> Any:
+    """The real index, with an optional `port` added to struts2/s2-045 next to its 8080."""
+    from sosya.catalog.models import Port
+
+    index = load_index()
+    entry = index.get("vulhub/struts2/s2-045")
+    assert entry is not None
+    extra = Port(port=port, protocol="tcp", optional=True, reason="never listens")
+    services = [s.model_copy(update={"ports": [*s.ports, extra]}) for s in entry.services]
+    changed = entry.model_copy(update={"services": services})
+    entries = [changed if e.id == entry.id else e for e in index.entries]
+    return index.model_copy(update={"entries": entries})
+
+
+def test_an_optional_port_waits_only_for_the_required_ports_of_its_service(lab: Lab) -> None:
+    lab.failing = {"/dev/tcp/web/9999", "/dev/tcp/10.0.1.2/9999"}
+    checks = lab.run(index=with_extra_optional_web_port(9999))
+    assert failures(checks) == []
+    warned = {c.target for c in checks if not c.ok}
+    assert warned == {"web:9999", "web 10.0.1.2:9999"}
+    detail = next(c.detail for c in checks if c.target == "web:9999")
+    assert detail == "no answer within 5s of its service (optional port: never listens)"
+    script = next(e[-1] for e in lab.fake.commands("exec") if e[2:4] == ["sh", "-c"])
+    optional = [line for line in script.splitlines() if line.startswith("optional ")]
+    assert len(optional) == 2  # by name and by IP
+    by_name = next(line for line in optional if "/dev/tcp/web/9999" in line)
+    ready, command = by_name.split("/dev/tcp/web/8080", 1)  # waits for 8080, then tries 9999
+    assert "9999" not in ready and "/dev/tcp/web/9999" in command
+    # 8080 itself stays a normal reach check with the full deadline
+    assert any(
+        line.startswith("reach ") and "/dev/tcp/web/8080" in line for line in script.splitlines()
+    )
+
+
+def test_an_optional_port_fails_with_its_service(lab: Lab) -> None:
+    lab.failing = {"/dev/tcp/web/8080"}
+    checks = lab.run(index=with_extra_optional_web_port(9999))
+    assert {c.target for c in failures(checks)} == {"web:8080"}
+    assert "web:9999" in {c.target for c in checks if not c.ok and c.level == "warning"}
+
+
+def test_the_optional_window_is_short_in_a_real_shell() -> None:
+    import time
+
+    def run(probe: probe_module.Probe, timeout: int, grace: int) -> tuple[bool, float]:
+        script = probe_module.script([probe], timeout, optional_grace=grace)
+        started = time.monotonic()
+        out = subprocess.run(["sh", "-c", script], capture_output=True, text=True, check=True)
+        return probe_module.parse(out.stdout, [probe])[probe.id], time.monotonic() - started
+
+    closed = probe_module.Probe("a1", "optional", "false", ready="true")
+    ok, elapsed = run(closed, timeout=60, grace=1)
+    assert not ok and elapsed < 10  # far from the 60 s deadline
+    assert run(probe_module.Probe("a1", "optional", "true", ready="true"), 60, 1)[0]
+    never_ready = probe_module.Probe("a1", "optional", "true", ready="false")
+    assert not run(never_ready, timeout=1, grace=1)[0]
 
 
 def test_a_closed_optional_port_is_only_a_warning(lab: Lab) -> None:

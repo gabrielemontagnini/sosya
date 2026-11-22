@@ -248,6 +248,16 @@ the compose file but never listens. At Gate 2 it cost a repair attempt. It is no
 in `sosya validate`, an optional port that does not answer is a warning, not a failure, so it
 never goes back to the LLM. `sosya catalog` shows optional ports with a `?`.
 
+Second entry: port 6699 of `samba/CVE-2017-7494`, published by the compose file but closed in a
+fresh range (found by the gallery run of 2026-11-22).
+
+An optional port does not cost the whole readiness deadline. Within the normal deadline it waits
+only for the required ports of the same service; once they answer, it gets one short window
+(`OPTIONAL_GRACE`, 5 s) and then warns. The proxy checks of `--proxy` do the same: required
+ports first, then the short window. A service whose ports are all optional keeps the normal
+deadline, since nothing tells when it is up. Measured on `file-server`: `sosya validate` went
+from 90 s to 5 s, with or without `--proxy`.
+
 ## Where `sosya up` finds a range
 
 `sosya up <target>` looks, in this order, for:
@@ -370,7 +380,7 @@ isolation checks as CI.
 | Group | Check | Pass when |
 | --- | --- | --- |
 | service | every container | running (healthy, with a healthcheck), or exited 0 (one-shot) |
-| reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s; an optional port only warns |
+| reach | attacker → every service on a shared network, by name and by IP, each TCP port | connects within 90 s; an optional port gets 5 s once the required ports of its service answer, and only warns |
 | callback | every target namespace → the attacker box's address on each segment they share, on a random port from 40000 to 59999 | connects within 90 s |
 | segmentation | attacker → containers on no shared network, by name and by IP | unresolved or refused |
 | no internet | every target namespace: DNS, TCP v4 and v6, HTTP, default route | all fail |

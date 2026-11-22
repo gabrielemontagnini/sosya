@@ -277,6 +277,31 @@ def test_the_proxy_must_reach_the_services(exposed: ExposedLab) -> None:
     assert failed.target == "proxy → web:8080"
 
 
+def test_the_proxy_gives_an_optional_port_only_a_short_window(
+    exposed: ExposedLab, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import time
+
+    from test_validate import with_extra_optional_web_port
+
+    asked: list[int] = []
+
+    def connect(proxy, host: str, port: int, timeout: float = 5.0) -> bool:
+        if host == "web":
+            asked.append(port)
+        return (host, port) in exposed.proxy_reaches
+
+    monkeypatch.setattr(socks, "connect", connect)
+    monkeypatch.setattr(probe_module, "OPTIONAL_GRACE", 0)
+    started = time.monotonic()
+    checks = exposed.run(index=with_extra_optional_web_port(9999), ready_timeout=60)
+    assert time.monotonic() - started < 10  # not the 60 s deadline
+    assert failures(checks) == []
+    (warned,) = [c for c in checks if c.target == "proxy → web:9999"]
+    assert not warned.ok and warned.level == "warning"
+    assert asked[0] == 8080 and 9999 in asked  # the required port first
+
+
 def test_without_internet_the_proxy_must_give_none(exposed: ExposedLab, tmp_path: Path) -> None:
     source = Path(state_store.load(exposed.workspace.root)["dmz-redis"].source)
     source.write_text(source.read_text() + "  internet: false\n")
