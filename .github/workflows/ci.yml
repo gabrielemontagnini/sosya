@@ -36,6 +36,36 @@ jobs:
       - name: Smoke test the CLI
         run: uv run sosya --version
 
+  commits:
+    name: commit messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: No tool attribution in the commit messages of this pull request
+        # The word is built from octal codes, so this file does not contain it.
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          word=$(printf '\143\154\141\165\144\145')
+          bad=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            message=$(git log -1 --format=%B "$sha")
+            if grep -qi -- "$word" <<< "$message"; then
+              echo "::error::Commit $(git log -1 --format='%h %s' "$sha") names a tool in its message"
+              bad=1
+            fi
+          done
+          if [ "$bad" -ne 0 ]; then
+            echo "Remove tool attribution from these commit messages (see CONTRIBUTING.md)."
+            exit 1
+          fi
+          echo "$(git rev-list --count "$BASE_SHA..$HEAD_SHA") commit(s) checked"
+
   package:
     name: package
     runs-on: ubuntu-latest
