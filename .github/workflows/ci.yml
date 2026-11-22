@@ -130,4 +130,5 @@ jobs:
       - name: Run the Docker tests
         env:
           SOSYA_ATTACKER_IMAGE: sosya-attacker:ci
-        run: uv run pytest -m docker -v
+        # Every gallery range runs in the weekly workflow (gallery.yml); each push keeps to dmz-redis.
+        run: uv run pytest -m "docker and not gallery" -v

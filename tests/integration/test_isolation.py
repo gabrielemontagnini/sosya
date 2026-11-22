@@ -65,7 +65,16 @@ def test_every_validation_check_passes(lab: Lab) -> None:
 
 @pytest.mark.parametrize(
     "group",
-    ["service", "reach", "segmentation", "no internet", "host isolation", "attacker", "flag"],
+    [
+        "service",
+        "reach",
+        "callback",
+        "segmentation",
+        "no internet",
+        "host isolation",
+        "attacker",
+        "flag",
+    ],
 )
 def test_validation_covers(lab: Lab, group: str) -> None:
     assert any(c.group == group for c in lab.checks)
