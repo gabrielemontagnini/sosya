@@ -20,6 +20,7 @@ from sosya.runtime.docker import ContainerInfo, Docker, DockerError
 from sosya.scenario import flags as flag_store
 from sosya.scenario import markdown as scenario
 from sosya.spec import RangeSpec, SpecError, check_catalog, errors, load_range, range_file
+from sosya.text import plural
 
 WORKSPACE = Path(".sosya")
 ATTEMPTS = "attempts"
@@ -284,7 +285,8 @@ def up(
     refused = errors(issues)
     if refused:
         raise RangeError("the range is not valid:\n  " + "\n  ".join(str(i) for i in refused))
-    report("ok", f"checked against the catalog ({len(spec.hosts)} hosts, engine {platform})")
+    hosts = plural(len(spec.hosts), "host")
+    report("ok", f"checked against the catalog ({hosts}, engine {platform})")
 
     exposure = exposure or exposure_model.Exposure()
     if not exposure.empty:

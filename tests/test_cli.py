@@ -257,7 +257,7 @@ def fake_new(monkeypatch: pytest.MonkeyPatch, outcome: str = "green", **extra: A
         seen["confirmed"] = confirm_plan(spec, result)
         if outcome == "green" and seen["confirmed"]:
             phase("plan", "attempt 1: web=struts2/s2-045")
-            phase("up", "1 host(s) running")
+            phase("up", "1 host running")
             phase("validate", "14/14 checks passed")
             result.scenario_file = Path("ranges/lab/SCENARIO.md")
         else:

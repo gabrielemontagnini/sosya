@@ -28,6 +28,7 @@ from sosya.runtime import HostEnvironmentError, RangeError, Reporter, Workspace
 from sosya.runtime import state as state_store
 from sosya.runtime.docker import Docker
 from sosya.spec import RANGE_FILE, Issue, RangeSpec, SpecError, check_catalog, load_range
+from sosya.text import plural
 from sosya.validate import Check, failures, validate
 
 MAX_ATTEMPTS = 3
@@ -284,7 +285,7 @@ def build(
 
             if draft.errors or spec is None:
                 problems = [str(issue) for issue in draft.errors]
-                phase("plan", f"attempt {number}: {len(problems)} problem(s) found")
+                phase("plan", f"attempt {number}: {plural(len(problems), 'problem')} found")
                 _save_attempt(
                     workspace, name, number, draft=draft, spec=spec, problems={"static": problems}
                 )
@@ -365,7 +366,7 @@ def build(
                 result.attempts.append(Attempt(number, "live", problems, components))
                 continue
             clock.add("up", time.monotonic() - t)
-            phase("up", f"{len(spec.hosts)} host(s) running")
+            phase("up", f"{plural(len(spec.hosts), 'host')} running")
 
             t = time.monotonic()
             checks = check(name, workspace=workspace, docker=docker)

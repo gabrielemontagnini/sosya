@@ -108,7 +108,8 @@ def problems(exposure: Exposure, plan: topology.Topology) -> list[str]:
     ports = exposure.local_ports
     duplicates = sorted({port for port in ports if ports.count(port) > 1})
     if duplicates:
-        found.append(f"local port(s) used twice: {', '.join(map(str, duplicates))}")
+        word = "port" if len(duplicates) == 1 else "ports"
+        found.append(f"local {word} used twice: {', '.join(map(str, duplicates))}")
     box = next(c for c in plan.containers if c.host == topology.ATTACKER)
     containers = {c.key: c for c in plan.containers if c.host != topology.ATTACKER}
     for forward in exposure.forwards:

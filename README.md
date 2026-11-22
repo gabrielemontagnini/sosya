@@ -2,9 +2,10 @@
 
 **Describe a hacking lab in plain English. Get it running, isolated and verified.**
 
-> Status: pre-release. Sosya v0.1 ships on November 24, 2026.
+> Status: pre-release. Sosya v0.1 ships on November 24, 2026. Until then, install it from the
+> repository: `uv tool install git+https://github.com/gabrielemontagnini/sosya`.
 
-![sosya new builds a two-host range from one sentence, then sosya shell reaches the web server](https://raw.githubusercontent.com/gabrielemontagnini/sosya/main/docs/demo.gif)
+![sosya new builds a two-host range from one sentence; in sosya shell, the web server answers HTTP 200 while redis-cli cannot even resolve the internal cache host](https://raw.githubusercontent.com/gabrielemontagnini/sosya/main/docs/demo.gif)
 
 Sosya turns one sentence into a working, multi-container security lab (a *range*). An LLM picks
 and composes real, documented vulnerable environments from [Vulhub](https://github.com/vulhub/vulhub);
@@ -22,7 +23,8 @@ $ sosya shell dmz-redis        # a Kali box inside the range
 ```
 
 Then describe your own lab. Set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `OPENAI_BASE_URL` for
-any OpenAI-compatible server (Ollama, LM Studio, vLLM, OpenRouter):
+any OpenAI-compatible server (LM Studio, vLLM, OpenRouter; tested with Ollama). The description
+can be in any language:
 
 ```console
 $ sosya new "Struts2 app in a DMZ, passwordless Redis reachable only from the web server"
@@ -31,6 +33,20 @@ $ sosya new "Struts2 app in a DMZ, passwordless Redis reachable only from the we
 `sosya new` shows the plan and asks before it starts anything (`Start this range? [Y/n/edit]`).
 When the range is green, `sosya shell` opens the attacker box, `SCENARIO.md` lists the objectives,
 hints and flag locations, and `sosya down <range>` removes everything.
+
+### Configuration
+
+| Setting | What it does |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | Use Anthropic (`ANTHROPIC_BASE_URL` for another endpoint) |
+| `OPENAI_API_KEY`, `OPENAI_BASE_URL` | Use OpenAI or any OpenAI-compatible server |
+| `SOSYA_PROVIDER` | `anthropic` or `openai`, when keys for both are set |
+| `--model` / `SOSYA_MODEL` | The model id. Required for OpenAI and for servers that list several models |
+| `--effort` / `SOSYA_EFFORT` | `low`, `medium` (default), `high`, `xhigh` or `max`; OpenAI-compatible servers get `high` for the last two |
+
+Without a model id, Sosya chooses one automatically: the newest Sonnet model on Anthropic, or the
+only model a server lists (a local Ollama with one model pulled, for example). Keys are never
+printed or logged.
 
 ### Requirements
 
@@ -67,7 +83,8 @@ sentence → catalog search → LLM planner → range.yaml (you approve it)
 
 ### Honest numbers
 
-- **11 seconds** from the sentence to a verified two-host range, with the images already pulled.
+- **11 seconds with a hosted model**, from the sentence to a verified two-host range, with the
+  images already pulled.
 - **About 1 to 4 minutes** the first time, mostly image pulls (71 s median, 240 s p90 over the ten
   [Gate 2 prompts](https://github.com/gabrielemontagnini/sosya/blob/main/evals/gate2.yaml): 10 of
   10 green).
@@ -98,8 +115,12 @@ The range files are in
 Isolation is the default, not an option:
 
 - **No published ports.** Targets live on Docker networks with `internal: true` and the
-  `isolated` gateway mode, so they have no internet access and the host has no route to them.
-  The attacker box is the only way in, and the only container with internet access.
+  `isolated` gateway mode: the host has no route to them, and the attacker box is the only way
+  in.
+- **Targets never join a network with internet access.** The attacker box has one, unless the
+  range sets `attacker.internet: false` in its `range.yaml`. With `--proxy` or `--expose`, the
+  relay container has one too: it only forwards what is published on `127.0.0.1` to the
+  attacker box, and joins no segment.
 - **Pivots are real.** A host on two networks is the only path between them.
 - **`--expose` and `--proxy` bind `127.0.0.1` only**, through a relay on a separate network that
   no target joins. `sosya up --proxy` gives your host browser or Burp a SOCKS5 proxy that reaches
@@ -108,7 +129,8 @@ Isolation is the default, not an option:
   privileges (`privileged: true`) start only with `--allow-privileged` and an interactive
   confirmation that lists each one.
 - **MCP rules.** Over MCP, dangerous environments are always refused, with no override.
-  `attacker_exec` runs commands only in ranges whose attacker box has no internet access.
+  `attacker_exec` runs commands only in ranges with `attacker.internet: false`, so an agent
+  never gets a box with internet access.
 - `sosya validate` re-checks all of this on a running range; CI runs the same checks.
 
 **The limit, stated plainly.** Containers share the host's kernel. Docker isolation is not a

@@ -5,7 +5,7 @@
 #
 # Needs vhs, ttyd and ffmpeg. On hosts that block unprivileged user namespaces (recent Ubuntu),
 # Chromium's sandbox cannot start: set VHS_NO_SANDBOX=true. The range it builds keeps running:
-# stop it with `sosya down`. Measured on 2026-11-22: 21 s, 175 KB.
+# stop it with `sosya down`.
 
 Output docs/demo.gif
 
@@ -41,4 +41,10 @@ Sleep 500ms
 Type `curl -s -o /dev/null -w 'web:8080 answers HTTP %{http_code}\n' http://web:8080`
 Enter
 Wait+Screen@30s /answers HTTP/
-Sleep 2.5s
+Sleep 1s
+# Segmentation: cache sits only on the internal network, so the attacker box cannot even resolve it.
+Type "redis-cli -h cache ping"
+Enter
+Wait+Screen@30s /Could not connect/
+# Hold the final frame.
+Sleep 3s
