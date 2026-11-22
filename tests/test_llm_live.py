@@ -1,4 +1,7 @@
-"""Calls to a real LLM: `~/.local/bin/with-llm-key uv run pytest -m llm`."""
+"""Calls to a real LLM.
+
+Run `uv run pytest -m llm` with your provider key exported in the environment.
+"""
 
 import pytest
 

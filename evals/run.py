@@ -1,8 +1,10 @@
 """Gate 2: run the fixed prompts in evals/gate2.yaml and write a report.
 
-    ~/.local/bin/with-llm-key uv run python evals/run.py --plan-only --effort low,medium,high
-    ~/.local/bin/with-llm-key uv run python evals/run.py --effort medium
+    uv run python evals/run.py --plan-only --effort low,medium,high
+    uv run python evals/run.py --effort medium
     uv run python evals/run.py --rebuild evals/reports/gate2-plan-*.json
+
+Run the first two with your provider key exported in the environment; `--rebuild` needs none.
 
 `--plan-only` measures planning alone (queries, candidates, drafts and static repairs), with no
 Docker, once per effort level: latency and the share of valid plans. The full run builds every

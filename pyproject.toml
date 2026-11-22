@@ -62,5 +62,5 @@ addopts = "-ra -m 'not docker and not llm'"
 markers = [
     "docker: needs a running Docker daemon",
     "gallery: starts every gallery range live (weekly workflow; also marked docker)",
-    "llm: calls a real LLM (run through ~/.local/bin/with-llm-key)",
+    "llm: calls a real LLM (run with your provider key exported in the environment)",
 ]
