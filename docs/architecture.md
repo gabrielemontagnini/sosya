@@ -493,6 +493,11 @@ max. Turning a local model's thinking off (on Ollama `/v1` only `reasoning_effor
 What this means for the README: a local 8B model on CPU **works**, but slowly. Use the default
 effort, and count on 10 to 15 minutes for a single-host range. Each local result above is one run of one model.
 
+Recount (2026-11-22): reports now count "expectations met" only on valid plans (plan only) or
+green ranges (full run). `evals/run.py --rebuild` rewrote the committed Markdown from the JSON,
+with no new run: the `none` rows went from 8/10 to 3/10 and from 2/3 to 1/3; every other report
+was unchanged.
+
 Reports: `evals/reports/gate2-plan-20261121-232502.md` (before the fixes),
 `gate2-plan-20261121-234120.md` (`none`, 10 prompts), `gate2-plan-20261122-002814.md` (`none`
 and medium, 3 prompts).

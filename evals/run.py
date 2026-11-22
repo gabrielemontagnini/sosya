@@ -2,11 +2,14 @@
 
     ~/.local/bin/with-llm-key uv run python evals/run.py --plan-only --effort low,medium,high
     ~/.local/bin/with-llm-key uv run python evals/run.py --effort medium
+    uv run python evals/run.py --rebuild evals/reports/gate2-plan-*.json
 
 `--plan-only` measures planning alone (queries, candidates, drafts and static repairs), with no
 Docker, once per effort level: latency and the share of valid plans. The full run builds every
 prompt (`new`), validates it again and stops it (`down`). The gate passes when at least 8 of
-the 10 prompts become green ranges that also meet their expectations.
+the 10 prompts become green ranges that also meet their expectations. Expectations count only
+on valid plans (plan only) or green ranges (full run). `--rebuild` writes the Markdown of saved
+reports again from their JSON, keeping the header, without calling any LLM.
 
 Reports go to evals/reports/. They record the provider, the model line and the effort, never
 the model id. Working files go to evals/runs/, which git ignores.
@@ -24,7 +27,7 @@ from typing import Any
 
 import yaml
 
-from sosya import __version__, engine, llm, runtime
+from sosya import __version__, advisories, engine, llm, runtime
 from sosya.build import build
 from sosya.catalog.loader import load_index
 from sosya.llm.base import RefusalError
@@ -51,6 +54,19 @@ class Row:
     refusal_category: str | None = None
 
     @property
+    def counted(self) -> bool:
+        """Expectations count only on a valid plan or a green range."""
+        return self.outcome in ("valid", "green")
+
+    @property
+    def met(self) -> bool:
+        return self.counted and self.expectations == "met"
+
+    @property
+    def shown(self) -> str:
+        return self.expectations if self.counted else "-"
+
+    @property
     def passed(self) -> bool:
         return self.outcome == "green" and self.expectations == "met"
 
@@ -70,6 +86,11 @@ def expectations(prompt: dict[str, Any], spec: RangeSpec | None) -> str:
         reachable = set(spec.attacker.networks)
         if all(set(host.networks) & reachable for host in spec.hosts):
             problems.append("no host behind a pivot")
+    named = advisories.find(prompt.get("sentence", ""))
+    texts = [spec.name, spec.description, *spec.objectives]
+    spoiled = sorted({s for text in texts for s in advisories.spoilers(text, named)})
+    if spoiled:
+        problems.append("spoiler: " + ", ".join(spoiled))
     return "; ".join(problems) or "met"
 
 
@@ -201,7 +222,7 @@ def _stats(values: list[float]) -> str:
     return f"{statistics.median(ordered):.1f}s median, {p90:.1f}s p90"
 
 
-def header(title: str, adapter: Any, platform: str | None) -> list[str]:
+def header(title: str, adapter: Any, platform: str | None, effort: str | None = None) -> list[str]:
     index = load_index()
     return [
         f"# {title}",
@@ -209,19 +230,20 @@ def header(title: str, adapter: Any, platform: str | None) -> list[str]:
         f"- Date: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
         f"- Sosya {__version__}, Vulhub `{index.vulhub_commit[:7]}`, engine `{platform}`",
         f"- Provider: {adapter.provider}, model line: {adapter.line}",
+        *([f"- Effort: {effort}"] if effort else []),
         "",
     ]
 
 
-def report_plan_only(by_effort: dict[str, list[Row]], adapter: Any, platform: str | None) -> str:
-    lines = header("Gate 2: planning latency by effort", adapter, platform)
+def report_plan_only(by_effort: dict[str, list[Row]], head: list[str]) -> str:
+    lines = list(head)
     lines += [
         "| Effort | Valid plans | Expectations met | Queries | Plan | Total |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
     for effort, rows in by_effort.items():
         valid = sum(1 for r in rows if r.outcome == "valid")
-        met = sum(1 for r in rows if r.expectations == "met")
+        met = sum(1 for r in rows if r.met)
         lines.append(
             f"| {effort} | {valid}/{len(rows)} | {met}/{len(rows)} "
             f"| {_stats([r.times.get('queries', 0) for r in rows])} "
@@ -239,7 +261,7 @@ def report_plan_only(by_effort: dict[str, list[Row]], adapter: Any, platform: st
         for r in rows:
             lines.append(
                 f"| {r.id} | {r.outcome} | {r.attempts} | {r.times.get('plan', 0):.1f}s "
-                f"| {r.expectations} |"
+                f"| {r.shown} |"
             )
         notes = [r for r in rows if r.message]
         if notes:
@@ -248,11 +270,10 @@ def report_plan_only(by_effort: dict[str, list[Row]], adapter: Any, platform: st
     return "\n".join(lines) + "\n"
 
 
-def report_full(rows: list[Row], effort: str, adapter: Any, platform: str | None) -> str:
+def report_full(rows: list[Row], head: list[str]) -> str:
     passed = sum(1 for r in rows if r.passed)
     verdict = "PASS" if passed >= PASS_MARK else "FAIL"
-    lines = header("Gate 2: full run", adapter, platform)
-    lines.insert(-1, f"- Effort: {effort}")
+    lines = list(head)
     refused = sum(1 for r in rows if r.outcome == "refused")
     lines += [
         f"**{verdict}: {passed}/{len(rows)} prompts became green ranges that meet their "
@@ -264,7 +285,7 @@ def report_full(rows: list[Row], effort: str, adapter: Any, platform: str | None
     for r in rows:
         components = ", ".join(c.removeprefix("vulhub/") for c in r.components)
         lines.append(
-            f"| {r.id} | {r.outcome} | {r.expectations} | {r.attempts} "
+            f"| {r.id} | {r.outcome} | {r.shown} | {r.attempts} "
             f"| {r.times.get('plan', 0):.0f}s | {r.times.get('up', 0):.0f}s "
             f"| {r.times.get('validate', 0):.0f}s | {r.times.get('total', 0):.0f}s | {components} |"
         )
@@ -277,13 +298,38 @@ def report_full(rows: list[Row], effort: str, adapter: Any, platform: str | None
     return "\n".join(lines) + "\n"
 
 
+def _row(data: dict[str, Any]) -> Row:
+    return Row(**{k: v for k, v in data.items() if k != "passed"})
+
+
+def rebuild(json_path: Path) -> Path:
+    """Write the Markdown of a saved report again from its JSON, keeping its header."""
+    md_path = json_path.with_suffix(".md")
+    old = md_path.read_text(encoding="utf-8").splitlines()
+    end = next(i for i, line in enumerate(old) if line.startswith(("|", "**")))
+    head = old[:end]
+    data = json.loads(json_path.read_text(encoding="utf-8"))
+    if isinstance(data, dict):
+        text = report_plan_only({k: [_row(r) for r in v] for k, v in data.items()}, head)
+    else:
+        text = report_full([_row(r) for r in data], head)
+    md_path.write_text(text, encoding="utf-8")
+    return md_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--plan-only", action="store_true")
     parser.add_argument("--effort", default="", help="comma-separated effort levels")
     parser.add_argument("--only", default="", help="comma-separated prompt ids")
     parser.add_argument("--record", type=Path, help="save sanitized LLM responses here")
+    parser.add_argument("--rebuild", type=Path, nargs="+", help="saved report JSON files")
     args = parser.parse_args()
+
+    if args.rebuild:
+        for path in args.rebuild:
+            say(f"rebuilt: {rebuild(path)}")
+        return 0
 
     prompts = yaml.safe_load(PROMPTS.read_text(encoding="utf-8"))["prompts"]
     if args.only:
@@ -299,7 +345,9 @@ def main() -> int:
         for effort in efforts:
             by_effort[effort or "default"] = plan_only(prompts, effort or None, platform)
         adapter = llm.select()
-        text = report_plan_only(by_effort, adapter, platform)
+        text = report_plan_only(
+            by_effort, header("Gate 2: planning latency by effort", adapter, platform)
+        )
         name = f"gate2-plan-{stamp}"
         rows_data: Any = {k: [asdict(r) for r in v] for k, v in by_effort.items()}
         ok = True
@@ -313,7 +361,7 @@ def main() -> int:
         run_dir = RUNS / stamp
         rows = full_run(prompts, effort, platform, run_dir, recorder)
         adapter = llm.select(effort=effort)
-        text = report_full(rows, effort or "default", adapter, platform)
+        text = report_full(rows, header("Gate 2: full run", adapter, platform, effort or "default"))
         name = f"gate2-{stamp}"
         rows_data = [asdict(r) | {"passed": r.passed} for r in rows]
         ok = sum(1 for r in rows if r.passed) >= PASS_MARK

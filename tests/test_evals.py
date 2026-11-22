@@ -62,3 +62,62 @@ def test_the_sanitizer_replaces_real_model_ids(tmp_path: Path) -> None:
     assert clean["model"] == "test-model-1"
     assert clean["data"][0]["id"] == "test-model-2"
     assert "model" in clean["content"][0]["text"]
+
+
+def test_expectations_flag_spoilers_unless_the_sentence_names_them() -> None:
+    from sosya import gallery
+    from sosya.spec import load_range
+
+    run = load("run")
+    path = gallery.path("dmz-redis")
+    assert path is not None
+    spec = load_range(path).model_copy(update={"description": "Struts2 with CVE-2017-5638"})
+    assert run.expectations({"sentence": "a struts2 lab"}, spec) == "spoiler: CVE-2017-5638"
+    assert run.expectations({"sentence": "struts2 with CVE-2017-5638"}, spec) == "met"
+
+
+def test_expectations_count_only_on_valid_plans(tmp_path: Path) -> None:
+    run = load("run")
+    rows = [
+        {"id": "a", "outcome": "valid", "expectations": "met", "times": {"total": 1.0}},
+        {"id": "b", "outcome": "failed", "expectations": "met", "times": {"total": 2.0}},
+        {
+            "id": "c",
+            "outcome": "valid",
+            "expectations": "no host behind a pivot",
+            "times": {"total": 3.0},
+        },
+    ]
+    report = tmp_path / "gate2-plan-x.json"
+    report.write_text(json.dumps({"medium": rows}))
+    report.with_suffix(".md").write_text("# Gate 2\n\n- Date: kept\n\n| old | table |\n")
+    text = run.rebuild(report).read_text()
+    assert text.startswith("# Gate 2\n\n- Date: kept\n\n| Effort")
+    assert "| medium | 2/3 | 1/3 |" in text
+    assert "| b | failed | 1 |" not in text and "| b | failed | 0 | 0.0s | - |" in text
+
+
+def test_a_full_report_rebuilds_with_the_same_verdict(tmp_path: Path) -> None:
+    run = load("run")
+    rows = [
+        {
+            "id": "a",
+            "outcome": "green",
+            "expectations": "met",
+            "passed": True,
+            "times": {"total": 3.0},
+        },
+        {
+            "id": "b",
+            "outcome": "failed",
+            "expectations": "met",
+            "passed": False,
+            "times": {"total": 3.0},
+        },
+    ]
+    report = tmp_path / "gate2-x.json"
+    report.write_text(json.dumps(rows))
+    report.with_suffix(".md").write_text("# Gate 2: full run\n\n- Effort: medium\n\n**PASS")
+    text = run.rebuild(report).read_text()
+    assert "**FAIL: 1/2 prompts" in text
+    assert "| b | failed | - |" in text
