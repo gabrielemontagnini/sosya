@@ -342,6 +342,21 @@ def test_shell_without_a_running_attacker(workspace: runtime.Workspace, fake: Fa
         runtime.shell("dmz-redis", docker=Docker(runner=fake))
 
 
+def test_only_running_range(fake: FakeDocker) -> None:
+    docker = Docker(runner=fake)
+    with pytest.raises(runtime.RangeError, match="no range is running"):
+        runtime.only_running_range(docker=docker)
+    fake.containers = [
+        container("web"),
+        container("attacker", role="attacker"),
+        container("attacker", role="attacker", range_name="old", state="exited"),
+    ]
+    assert runtime.only_running_range(docker=docker) == "dmz-redis"
+    fake.containers.append(container("attacker", role="attacker", range_name="solr"))
+    with pytest.raises(runtime.RangeError, match=r"2 ranges are running \(dmz-redis, solr\)"):
+        runtime.only_running_range(docker=docker)
+
+
 def test_state_round_trip_and_damaged_file(tmp_path: Path) -> None:
     record = state_store.RangeState(
         "lab", "sosya-lab", "/x/docker-compose.yml", "/x/range.yaml", "t"

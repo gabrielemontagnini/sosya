@@ -141,6 +141,24 @@ def test_down_and_shell_accept_a_path_or_a_name(lab: Path, monkeypatch: pytest.M
     assert names == ["lab", "far-away", "lab"]
 
 
+def test_shell_without_a_name_opens_the_only_running_range(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    names: list[str] = []
+    monkeypatch.setattr(runtime, "shell", lambda name: names.append(name) or 0)
+    monkeypatch.setattr(runtime, "only_running_range", lambda: "dmz-redis")
+    assert runner.invoke(app, ["shell"]).exit_code == 0
+    assert names == ["dmz-redis"]
+
+    def several() -> str:
+        raise runtime.RangeError("2 ranges are running (dmz-redis, solr): name one")
+
+    monkeypatch.setattr(runtime, "only_running_range", several)
+    result = runner.invoke(app, ["shell"])
+    assert result.exit_code == 1 and "dmz-redis, solr" in result.output
+    assert names == ["dmz-redis"]
+
+
 def test_status_shows_every_range(monkeypatch: pytest.MonkeyPatch) -> None:
     ranges = [
         runtime.RangeStatus(

@@ -572,6 +572,33 @@ def status(
 # --- shell -----------------------------------------------------------------------------------
 
 
+def running_ranges(*, docker: Docker | None = None) -> list[str]:
+    """The names of the ranges whose attacker box is running, from any directory, sorted."""
+    docker = docker or Docker()
+    return sorted(
+        {
+            c.range
+            for c in docker.containers()
+            if c.project.startswith(PROJECT_PREFIX)
+            and c.role == "attacker"
+            and c.state == "running"
+        }
+    )
+
+
+def only_running_range(*, docker: Docker | None = None) -> str:
+    """The one running range; `RangeError` when none runs or several do (they are listed)."""
+    names = running_ranges(docker=docker)
+    if not names:
+        raise RangeError("no range is running: start one with `sosya up <range>`")
+    if len(names) > 1:
+        raise RangeError(
+            f"{len(names)} ranges are running ({', '.join(names)}): name one, "
+            f"for example `sosya shell {names[0]}`"
+        )
+    return names[0]
+
+
 def shell(name: str, *, docker: Docker | None = None) -> int:
     """Open an interactive shell in the range's attacker box; return the shell's exit code."""
     docker = docker or Docker()
@@ -594,6 +621,8 @@ __all__ = [
     "ServiceStatus",
     "Workspace",
     "down",
+    "only_running_range",
+    "running_ranges",
     "shell",
     "state_store",
     "status",

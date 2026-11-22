@@ -257,6 +257,9 @@ never goes back to the LLM. `sosya catalog` shows optional ports with a `?`.
 3. `ranges/<name>/range.yaml` in the current directory;
 4. the gallery shipped inside the package, `sosya/gallery/<name>/range.yaml`.
 
+`sosya shell` with no range opens the attacker box of the only range that runs (from any
+directory); when several run, it stops and lists them.
+
 The gallery is part of the wheel, so `uv tool install sosya && sosya up dmz-redis` works from
 any directory with no repository and no LLM key. CI checks that the gallery is in the wheel
 and the sdist, and that every gallery range passes `load_range` and `check_catalog` from the

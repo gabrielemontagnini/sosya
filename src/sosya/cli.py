@@ -377,10 +377,19 @@ def status() -> None:
 
 
 @app.command()
-def shell(target: RangeArg) -> None:
+def shell(
+    target: Annotated[
+        str | None,
+        typer.Argument(
+            metavar="[RANGE]",
+            help="Range name or path to a range.yaml. Default: the only running range.",
+        ),
+    ] = None,
+) -> None:
     """Open a shell in the range's Kali attacker box."""
     try:
-        code = runtime.shell(_range_name(target))
+        name = _range_name(target) if target else runtime.only_running_range()
+        code = runtime.shell(name)
     except (runtime.RangeError, runtime.DockerError) as exc:
         _fail(exc)
     raise typer.Exit(code=code)
