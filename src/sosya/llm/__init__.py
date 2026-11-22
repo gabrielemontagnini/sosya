@@ -53,6 +53,8 @@ def select(
     if wanted == "anthropic" or (not use_openai and anthropic_key):
         if not anthropic_key:
             raise ConfigError("SOSYA_PROVIDER is anthropic but ANTHROPIC_API_KEY is not set")
+        if effort == "none":
+            raise ConfigError("effort none is for OpenAI-compatible servers: use low or more")
         return AnthropicLLM(
             anthropic_key,
             model=model,
@@ -66,6 +68,7 @@ def select(
             api_key=openai_key,
             base_url=openai_url,
             model=model,
+            effort=effort,
             transport=transport,
             recorder=recorder,
         )

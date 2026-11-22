@@ -274,6 +274,16 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
   with `response_format` `json_schema` and `strict: true`. If the server rejects it with a 400
   or 422 about the response format, the adapter switches to text mode for the rest of the
   process: the schema goes into the system prompt and the JSON is read from the reply.
+  The effort goes out as `reasoning_effort` (`xhigh` and `max` become `high`). A 400 or 422
+  about it drops the field for the rest of the process. `none`, accepted only by this adapter,
+  turns a local model's thinking off: on Ollama it is the only value that does (`low` still
+  thinks, and `think: false` is ignored on `/v1`). A server on this machine (loopback or
+  `host.docker.internal`) gets a 30-minute read timeout instead of 5 minutes, because a model on
+  CPU can need several minutes for one answer, and a timeout would only send the same request
+  again. Ollama cuts a prompt longer than its context window without an error. When
+  `usage.prompt_tokens` is below half of an estimate of what was sent (characters / 4, only for
+  prompts above about 1000 tokens), the completion carries a warning, which `sosya new` prints
+  as a `warn` line: the server probably truncated the prompt.
 - **Schemas** are stable and dedicated (`sosya.llm.schema.strict_schema`): every object closed
   with `additionalProperties: false`, every property required, unsupported constraints
   (lengths, bounds, patterns, defaults) removed and checked again by Pydantic. A schema never
@@ -291,8 +301,9 @@ conversation into JSON for a JSON Schema (`sosya.llm.base.LLM.complete_json`).
 
 ## Planner
 
-1. **Queries.** The LLM turns the sentence into 1 to 8 catalog keywords (`QueryPlan`), always at
-   low effort: it is a simple task, and its latency adds to every `sosya new`.
+1. **Queries.** The LLM turns the sentence into 1 to 8 catalog keywords (`QueryPlan`) at low
+   effort (or `none`, when that is the chosen effort): it is a simple task, and its latency adds
+   to every `sosya new`.
 2. **Candidates.** `sosya.catalog.search` ranks entries for the sentence and the keywords with
    Reciprocal Rank Fusion. From the ranking, at most 25 candidates are kept:
    - entries whose images cannot run on the engine's platform, or whose platform is unknown,

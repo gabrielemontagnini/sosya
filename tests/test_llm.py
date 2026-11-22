@@ -275,6 +275,92 @@ def test_openai_refusal_and_length() -> None:
 
 
 @pytest.mark.parametrize(
+    ("effort", "sent"), [("none", "none"), ("low", "low"), ("xhigh", "high"), ("max", "high")]
+)
+def test_openai_sends_the_effort_as_reasoning_effort(effort: str, sent: str) -> None:
+    server = Server().on("/v1/chat/completions", fixture("openai-chat"))
+    adapter = openai(server, model="test-local-1", effort="medium")
+    adapter.complete_json(
+        system="plan", messages=ASK, schema=SCHEMA, schema_name="queries", effort=effort
+    )
+    assert server.bodies("/v1/chat/completions")[0]["reasoning_effort"] == sent
+
+
+def test_openai_uses_its_own_effort_and_no_effort_sends_no_field() -> None:
+    server = Server().on("/v1/chat/completions", fixture("openai-chat"), fixture("openai-chat"))
+    complete(openai(server, model="test-local-1", effort="medium"))
+    complete(openai(server, model="test-local-1"))
+    first, second = server.bodies("/v1/chat/completions")
+    assert first["reasoning_effort"] == "medium"
+    assert "reasoning_effort" not in second
+
+
+def test_openai_drops_reasoning_effort_when_the_server_rejects_it() -> None:
+    rejected = httpx.Response(
+        400, json={"error": {"message": "Unsupported parameter: 'reasoning_effort'"}}
+    )
+    server = Server().on(
+        "/v1/chat/completions", rejected, fixture("openai-chat"), fixture("openai-chat")
+    )
+    adapter = openai(server, model="test-local-1", effort="low")
+    assert complete(adapter).data == {"queries": ["jenkins"]}
+    complete(adapter)
+    bodies = server.bodies("/v1/chat/completions")
+    assert "reasoning_effort" in bodies[0]
+    assert "reasoning_effort" not in bodies[1] and "reasoning_effort" not in bodies[2]
+    assert not adapter.text_mode
+
+
+def _chat(prompt_tokens: int | None) -> dict:
+    reply = fixture("openai-chat")
+    if prompt_tokens is None:
+        del reply["usage"]
+    else:
+        reply["usage"]["prompt_tokens"] = prompt_tokens
+    return reply
+
+
+@pytest.mark.parametrize(("prompt_tokens", "warned"), [(300, True), (2400, False), (None, False)])
+def test_openai_warns_when_the_server_probably_truncated(
+    prompt_tokens: int | None, warned: bool
+) -> None:
+    server = Server().on("/v1/chat/completions", _chat(prompt_tokens))
+    long_ask = [Message("user", "word " * 2400)]  # 12000 characters: about 3000 tokens
+    result = openai(server, model="test-local-1").complete_json(
+        system="plan", messages=long_ask, schema=SCHEMA, schema_name="queries"
+    )
+    assert bool(result.warnings) is warned
+    if warned:
+        assert "probably truncated" in result.warnings[0]
+        assert "300 prompt tokens of about 3001" in result.warnings[0]
+
+
+def test_openai_short_prompts_never_warn() -> None:
+    server = Server().on("/v1/chat/completions", _chat(1))
+    assert complete(openai(server, model="test-local-1")).warnings == []
+
+
+@pytest.mark.parametrize(
+    ("url", "local"),
+    [
+        ("http://localhost:11434/v1", True),
+        ("http://127.0.0.1:1234/v1", True),
+        ("http://[::1]:8000/v1", True),
+        ("http://host.docker.internal:11434/v1", True),
+        ("https://api.openai.com/v1", False),
+        ("http://10.0.0.5:8000/v1", False),
+    ],
+)
+def test_local_servers_get_a_long_timeout(url: str, local: bool) -> None:
+    from sosya.llm.http import LOCAL_TIMEOUT, TIMEOUT
+    from sosya.llm.openai import is_local
+
+    assert is_local(url) is local
+    adapter = OpenAICompatibleLLM(base_url=url, model="test-local-1")
+    assert adapter._http._client.timeout == (LOCAL_TIMEOUT if local else TIMEOUT)
+
+
+@pytest.mark.parametrize(
     "text",
     ['{"a": 1}', '```json\n{"a": 1}\n```', 'Sure! {"a": 1} Hope it helps.', '```\n{"a": 1}```'],
 )
@@ -347,3 +433,10 @@ def test_select_model_and_effort() -> None:
 def test_select_without_any_provider() -> None:
     with pytest.raises(ConfigError, match="ANTHROPIC_API_KEY"):
         llm.select(env={})
+
+
+def test_effort_none_is_only_for_openai_compatible_servers() -> None:
+    with pytest.raises(ConfigError, match="effort none"):
+        llm.select(effort="none", env={"ANTHROPIC_API_KEY": FAKE_KEY})
+    chosen = llm.select(env={"OPENAI_BASE_URL": "http://x/v1", "SOSYA_EFFORT": "none"})
+    assert isinstance(chosen, OpenAICompatibleLLM) and chosen.effort == "none"

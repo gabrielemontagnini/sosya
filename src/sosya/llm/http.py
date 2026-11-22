@@ -14,6 +14,9 @@ RETRY_STATUS = frozenset({408, 409, 429, 500, 502, 503, 504, 529})
 ATTEMPTS = 4
 MAX_WAIT = 30.0
 TIMEOUT = httpx.Timeout(300.0, connect=10.0)
+LOCAL_TIMEOUT = httpx.Timeout(1800.0, connect=10.0)
+"""For a server on this machine: a model on CPU can need many minutes for one answer, and a
+timeout would only send the same long request again."""
 
 
 def _error_text(response: httpx.Response) -> str:
@@ -53,12 +56,13 @@ class Http:
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
         attempts: int = ATTEMPTS,
+        timeout: httpx.Timeout = TIMEOUT,
     ) -> None:
         self.name = name
         self._client = httpx.Client(
             base_url=base_url.rstrip("/"),
             headers=dict(headers),
-            timeout=TIMEOUT,
+            timeout=timeout,
             transport=transport,
         )
         self._secrets = tuple(s for s in secrets if s)

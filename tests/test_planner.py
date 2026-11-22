@@ -255,3 +255,27 @@ def test_the_plan_request_marks_entries_with_local_files() -> None:
     assert first.startswith(f"- {files.id}") and "[local files]" in first
     assert second.startswith(f"- {image.id}") and "[local files]" not in second
     assert "[local files]" in prompt.PLAN_SYSTEM
+
+
+def test_queries_use_low_effort_or_none_when_chosen() -> None:
+    llm = FakeLLM({"queries": ["x"]}, {"queries": ["y"]}, {"queries": ["z"]})
+    planner(llm).derive_queries("a lab")
+    Planner(llm, index(), host_platform=None, effort="none").derive_queries("a lab")
+    llm.effort = "none"  # the adapter's own effort, from SOSYA_EFFORT
+    planner(llm).derive_queries("a lab")
+    assert [call["effort"] for call in llm.calls] == ["low", "none", "none"]
+
+
+def test_the_planner_forwards_adapter_warnings() -> None:
+    from sosya.llm.base import Completion
+
+    class Warning(FakeLLM):
+        def complete_json(self, **kwargs: Any) -> Completion:
+            result = super().complete_json(**kwargs)
+            return Completion(result.data, result.stop_reason, result.elapsed, warnings=["cut"])
+
+    seen: list[str] = []
+    found = Planner(
+        Warning({"queries": ["x"]}), index(), host_platform=None, warn=seen.append
+    ).derive_queries("a lab")
+    assert found == ["x"] and seen == ["cut"]

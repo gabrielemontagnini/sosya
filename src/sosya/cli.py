@@ -98,7 +98,10 @@ def new(
         str | None, typer.Option(help="LLM model id. Default: SOSYA_MODEL, else automatic.")
     ] = None,
     effort: Annotated[
-        str | None, typer.Option(help="Reasoning effort: low, medium, high, xhigh or max.")
+        str | None,
+        typer.Option(
+            help="Reasoning effort: low, medium, high, xhigh or max; none for local models."
+        ),
     ] = None,
     yes: Annotated[
         bool, typer.Option("--yes", "-y", help="Start the plan without asking first.")

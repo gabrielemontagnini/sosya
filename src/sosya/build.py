@@ -236,7 +236,12 @@ def build(
     if host_platform is None:
         host_platform = engine.docker_platform()
     planner = Planner(
-        llm, index, host_platform=host_platform, effort=effort, services_of=load_services
+        llm,
+        index,
+        host_platform=host_platform,
+        effort=effort,
+        services_of=load_services,
+        warn=lambda text: report("warn", text),
     )
     try:
         t = time.monotonic()

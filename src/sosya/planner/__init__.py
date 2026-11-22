@@ -1,6 +1,7 @@
 """The planner: from a sentence to a checked `RangeSpec`, through the LLM.
 
-1. `derive_queries`: the LLM turns the sentence into catalog keywords (always at low effort).
+1. `derive_queries`: the LLM turns the sentence into catalog keywords (at low effort, or none
+   when the user chose none).
 2. `candidates`: a lexical search with Reciprocal Rank Fusion picks at most 25 entries.
 3. `draft`: the LLM writes a lab from those candidates; Pydantic, the range schema,
    `check_catalog` and a "candidates only" check turn every mistake into an `Issue`.
@@ -16,7 +17,7 @@ from pydantic import ValidationError
 
 from sosya.catalog.loader import load_services
 from sosya.catalog.models import CatalogIndex
-from sosya.llm.base import LLM, Message
+from sosya.llm.base import LLM, Completion, Message
 from sosya.llm.http import dumps
 from sosya.planner import prompt
 from sosya.planner.candidates import Candidate, candidates
@@ -82,12 +83,24 @@ class Planner:
         host_platform: str | None,
         effort: str | None = None,
         services_of: Callable[[str], dict[str, Any]] = load_services,
+        warn: Callable[[str], None] = lambda text: None,
     ) -> None:
         self.llm = llm
+        self.warn = warn
         self.index = index
         self.host_platform = host_platform
         self.effort = effort
         self.services_of = services_of
+
+    def _forward(self, result: Completion) -> Completion:
+        for warning in result.warnings:
+            self.warn(warning)
+        return result
+
+    @property
+    def query_effort(self) -> str:
+        chosen = self.effort or getattr(self.llm, "effort", None)
+        return "none" if chosen == "none" else QUERY_EFFORT
 
     def derive_queries(self, sentence: str) -> list[str]:
         result = self.llm.complete_json(
@@ -96,8 +109,9 @@ class Planner:
             schema=QUERY_SCHEMA,
             schema_name="catalog_queries",
             max_tokens=4000,
-            effort=QUERY_EFFORT,
+            effort=self.query_effort,
         )
+        self._forward(result)
         try:
             plan = QueryPlan.model_validate(result.data)
         except ValidationError:
@@ -121,6 +135,7 @@ class Planner:
             schema_name="range_plan",
             effort=self.effort,
         )
+        self._forward(result)
         conversation.messages.append(Message("assistant", dumps(result.data)))
         return Draft(
             *self._check(conversation, result.data), elapsed=result.elapsed, data=result.data

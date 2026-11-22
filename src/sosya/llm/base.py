@@ -8,7 +8,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol
 
-EFFORTS = ("low", "medium", "high", "xhigh", "max")
+EFFORTS = ("none", "low", "medium", "high", "xhigh", "max")
+"""`none` turns reasoning off; only OpenAI-compatible servers accept it (local models)."""
 Role = Literal["user", "assistant"]
 
 
@@ -26,6 +27,8 @@ class Completion:
     elapsed: float
     """Seconds spent in HTTP calls, retries included."""
     usage: dict[str, int] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    """Safe to show: for example a server that probably truncated the prompt."""
 
 
 class LLMError(RuntimeError):
