@@ -1,0 +1,41 @@
+name: Proposal
+description: Suggest a feature or a change. Please open one before a large pull request.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should Sosya do? Commands, flags or `range.yaml` fields, if you have them in mind.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Other ways to solve it, including what you do today.
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Fit
+      description: >-
+        See the rules in
+        [CONTRIBUTING.md](https://github.com/gabrielemontagnini/sosya/blob/main/CONTRIBUTING.md#rules-that-are-not-negotiable).
+      options:
+        - label: It keeps isolation by default (no port on 0.0.0.0, targets only on internal networks).
+          required: true
+        - label: It does not generate or run exploit code.
+          required: true
+        - label: It stays within Docker Compose and Linux containers, or I explain below why not.
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope notes
+      description: If it goes beyond v0.1 (VMs, Windows, a web UI, hosted modes), why it belongs in Sosya.

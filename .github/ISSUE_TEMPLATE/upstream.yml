@@ -1,0 +1,56 @@
+name: Environment broken upstream
+description: A Vulhub environment that cannot run as published (image gone, port that never listens, ...).
+title: "Broken upstream: vulhub/<product>/<environment>"
+labels: [catalog]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sosya uses the Vulhub environments as they are, at a pinned commit. Some of them break
+        over time for reasons outside Sosya. Find the id with `sosya catalog <query>`.
+
+        Vulnerabilities *of* an environment are not bugs: they are there on purpose.
+  - type: input
+    id: component
+    attributes:
+      label: Component id
+      placeholder: vulhub/craftcms/CVE-2025-32432
+    validations:
+      required: true
+  - type: dropdown
+    id: symptom
+    attributes:
+      label: Symptom
+      options:
+        - An image cannot be pulled (404, 401, removed tag)
+        - A published port never listens
+        - A service never becomes healthy or exits
+        - The image does not exist for my platform
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >-
+        The failing output of `sosya up` or `sosya validate`, the pull error, or
+        `docker compose logs` of the service. Remove any key or token.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `sosya doctor`
+      description: It shows the engine's platform, which matters for image availability.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: Suggested fix
+      description: >-
+        For example an optional port in `data/catalog-overrides.yaml`, or a report to Vulhub
+        (link it here if you opened one).

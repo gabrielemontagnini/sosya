@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/gabrielemontagnini/sosya/security/advisories/new
+    about: Anything that breaks the isolation of a range. Please report it privately, not as an issue.

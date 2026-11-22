@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in Sosya does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. If the bug breaks the isolation of a range (a target that reaches
+        the internet or the host, a port published outside 127.0.0.1, an MCP tool that bypasses
+        the rules), **do not open an issue**: report it privately, as described in
+        [SECURITY.md](https://github.com/gabrielemontagnini/sosya/blob/main/SECURITY.md).
+
+        A problem with one Vulhub environment (an image that no longer exists, a service that
+        never starts) has its own form: *Environment broken upstream*.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead.
+      placeholder: |
+        I ran `sosya up dmz-redis` and expected a green range, but validation failed on ...
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands and output
+      description: The exact commands and their full output. Remove any API key or token.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `sosya doctor`
+      description: >-
+        Run `sosya doctor` and paste its output. It prints only the names of the LLM variables
+        that are set, never their values.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Output of `sosya --version`
+      placeholder: sosya 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: range
+    attributes:
+      label: range.yaml
+      description: The range involved, if it is not a gallery range.
+      render: yaml
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Ubuntu 26.04, x86_64
+  - type: checkboxes
+    id: secrets
+    attributes:
+      label: Before you submit
+      options:
+        - label: I removed every API key, token and password from what I pasted.
+          required: true

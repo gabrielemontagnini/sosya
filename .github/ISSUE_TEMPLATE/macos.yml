@@ -1,0 +1,85 @@
+name: Test on macOS with Docker Desktop
+description: Report how Sosya behaves on macOS with Docker Desktop (not verified yet).
+title: "macOS test: <chip>, Docker Desktop <version>"
+labels: [help wanted]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sosya is tested on Linux only. Docker Desktop on macOS should work but is not verified:
+        a report from a real Mac, even one where everything works, helps a lot.
+
+        Please run these and paste the output below:
+
+        ```console
+        sosya doctor
+        sosya up dmz-redis
+        sosya validate dmz-redis
+        sosya down dmz-redis
+        ```
+
+        If you have a few more minutes, also try `sosya up dmz-redis --proxy` and browse to
+        `http://web:8080` through the SOCKS5 proxy on `127.0.0.1:1080`.
+  - type: dropdown
+    id: chip
+    attributes:
+      label: Chip
+      options:
+        - Apple Silicon (M1 or newer)
+        - Intel
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Docker Desktop version
+      description: From *About Docker Desktop*, or `docker version`.
+      placeholder: Docker Desktop 4.50.0 (Engine 29.0.1)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Output of `sosya --version`
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `sosya doctor`
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: up
+    attributes:
+      label: Output of `sosya up dmz-redis`
+      description: Include how long it took, roughly; Java images can be slow under emulation.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: validate
+    attributes:
+      label: Output of `sosya validate dmz-redis`
+      description: The isolation checks matter most here.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: proxy
+    attributes:
+      label: "Optional: `--proxy`"
+      description: Did the browser reach `http://web:8080` through the proxy? Anything odd?
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Settings you changed in Docker Desktop (VM type, Rosetta, resources), errors, surprises.
