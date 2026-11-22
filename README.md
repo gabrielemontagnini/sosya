@@ -7,7 +7,8 @@
 **Describe a hacking lab in plain English. Get it running, isolated and verified.**
 
 > Status: pre-release. Sosya v0.1 ships on November 24, 2026. Until then, install it from the
-> repository: `uv tool install git+https://github.com/gabrielemontagnini/sosya`.
+> repository: `uv tool install git+https://github.com/gabrielemontagnini/sosya`, or try the
+> release candidate: `uv tool install sosya==0.1.0rc1`.
 
 ![sosya new builds a two-host range from one sentence; in sosya shell, the web server answers HTTP 200 while redis-cli cannot even resolve the internal cache host](https://raw.githubusercontent.com/gabrielemontagnini/sosya/main/docs/demo.gif)
 
