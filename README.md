@@ -6,7 +6,7 @@
 
 **Describe a hacking lab in plain English. Get it running, isolated and verified.**
 
-> Status: pre-release. Sosya v0.1 ships on November 24, 2026. Until then, install it from the
+> Status: pre-release. Sosya v0.1 ships on December 15, 2026. Until then, install it from the
 > repository: `uv tool install git+https://github.com/gabrielemontagnini/sosya`, or try the
 > release candidate: `uv tool install sosya==0.1.0rc1`.
 
@@ -93,9 +93,7 @@ sentence → catalog search → LLM planner → range.yaml (you approve it)
 
 - **11 seconds with a hosted model**, from the sentence to a verified two-host range, with the
   images already pulled.
-- **About 1 to 4 minutes** the first time, mostly image pulls (71 s median, 240 s p90 over the ten
-  [Gate 2 prompts](https://github.com/gabrielemontagnini/sosya/blob/main/evals/gate2.yaml): 10 of
-  10 green).
+- **About 1 to 4 minutes** the first time, mostly image pulls.
 - **Local models work, slowly.** An 8B model on CPU (no GPU) needs about 10 minutes per plan, and
   10 to 15 minutes for a single-host range. Keep the default effort: lower settings are not
   reliable at that size.
@@ -213,7 +211,7 @@ v0.1 is Docker Compose and Linux containers only. Under consideration for v0.2, 
 - clearer marks in the catalog for environments that are broken upstream;
 - automatic detection of published ports that never listen.
 
-Out of scope: VMs, Windows and Active Directory, a web UI, exploit generation, multi-user or
+Out of scope: VMs, Windows and Active Directory, exploit generation, multi-user or
 hosted modes.
 
 ## Contributing
